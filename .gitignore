@@ -1,0 +1,24 @@
+# Logs and debugging files
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
+
+# Dependency directories
+node_modules/
+jspm_packages/
+bower_components/
+.webpack/
+.web_modules/
+bruno/
+
+# Environment files
+.env
+.env.local
+.env.*.local
+admin.txt
+
