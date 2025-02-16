@@ -7,13 +7,6 @@ const cors = require("cors");
 const morgan = require("morgan");
 const WebSocket = require("ws");
 const http = require("http");
-const { generateToken, verifyToken } = require("./components/jwtUtils");
-const User = require("./models/User");
-const ChatLog = require("./models/ChatLog");
-const Introduction = require("./models/Introduction");
-const Post = require("./models/Post"); // NEW
-const Job = require("./models/Job"); // NEW
-const adminRoutes = require("./routes/admin");
 const cookieParser = require("cookie-parser");
 
 const app = express();
@@ -50,7 +43,7 @@ const limiter = rateLimit({
 app.use(limiter);
 
 // Routes
-app.use("/admin", adminRoutes);
+
 
 // Import and use API routes
 const apiRoutes = require("./routes/api");
