@@ -20,7 +20,8 @@ router.post("/newuser", async (req, res) => {
     const { username, password } = req.body;
     const user = new User({ username, password });
     await user.save();
-    res.status(201).json(user.toJSON());
+    const token = generateToken(user);
+    res.status(201).json({token, user: user.toJSON()});
   } catch (err) {
     res.status(400).json({ error: err.message });
   }
