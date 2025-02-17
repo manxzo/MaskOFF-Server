@@ -57,7 +57,7 @@ router.get("/user/:userID", verifyToken, async (req, res) => {
 });
 
 // List all users
-router.get("/users", verifyToken, async (req, res) => {
+router.get("/users", async (req, res) => {
   try {
     const users = await User.find({});
     res.json(users.map((u) => u.toJSON()));
