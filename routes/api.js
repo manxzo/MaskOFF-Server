@@ -5,8 +5,9 @@ const User = require("../models/User");
 const ChatLog = require("../models/ChatLog");
 const { generateToken, verifyToken } = require("../components/jwtUtils");
 
+
 // Import sendToUser from server.js to send live WS updates.
-const { sendToUser } = require("../server");
+const { sendToUser } = require("../components/wsUtils");
 
 /*
   ---------------------

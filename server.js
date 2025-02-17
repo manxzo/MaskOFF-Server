@@ -85,16 +85,7 @@ wss.on("connection", (ws) => {
 });
 
 // WebSocket helper to send live updates to a user.
-const sendToUser = (userId, data) => {
-  wss.clients.forEach((client) => {
-    if (client.readyState === WebSocket.OPEN && client.userId === userId) {
-      client.send(JSON.stringify(data));
-    }
-  });
-};
 
-// Expose sendToUser for use in other modules (e.g., API routes)
-module.exports.sendToUser = sendToUser;
 
 // Root & API info endpoints
 app.get("/", (req, res) => {
