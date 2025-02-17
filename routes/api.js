@@ -190,7 +190,7 @@ router.get("/chat/:userId", verifyToken, async (req, res) => {
 });
 
 // Send a message. If no chat exists between the current user and recipient, one is created automatically.
-router.post("/chat/send", verifyToken, async (req, res) => {
+/*router.post("/chat/send", verifyToken, async (req, res) => {
   try {
     const { recipientID, text } = req.body;
     let chat = await ChatLog.findOne({
@@ -212,9 +212,37 @@ router.post("/chat/send", verifyToken, async (req, res) => {
     });
     res.json({ message: "Message sent", chat: chat.toJSON() });
   } catch (err) {
+    res.status(500).json({ error: JSON.stringify(err) });
+  }
+});*/
+router.post("/chat/send", verifyToken, async (req, res) => {
+  try {
+    const { recipientID, text } = req.body;
+    if (!recipientID || !text) {
+      throw new Error("Missing recipientID or text in request body");
+    }
+    
+    let chat = await ChatLog.findOne({
+      participants: { $all: [req.user.id, recipientID] },
+    });
+    if (!chat) {
+      chat = new ChatLog({ participants: [req.user.id, recipientID] });
+      await chat.save();
+    }
+    await chat.addMessage(req.user.id, recipientID, text);
+   /* sendToUser(recipientID, {
+      type: "NEW_MESSAGE",
+      chatID: chat._id,
+      sender: req.user.id,
+      text,
+    });*/
+    res.json({ message: "Message sent", chat: chat.toJSON() });
+  } catch (err) {
+    console.error("Error in /api/chat/send:", err);
     res.status(500).json({ error: err.message });
   }
 });
+
 
 // Retrieve decrypted messages for a specific chat.
 router.get("/chat/messages/:chatId", verifyToken, async (req, res) => {
