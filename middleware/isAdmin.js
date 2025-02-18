@@ -7,6 +7,7 @@ const isAdmin = async (req, res, next) => {
     const token = req.cookies.adminToken;
 
     if (!token) {
+      console.log("No admin token found");
       return res.redirect("/admin/login");
     }
 
@@ -14,9 +15,15 @@ const isAdmin = async (req, res, next) => {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
     // Find user and check if admin
-    const user = await User.findById(decoded.id);
+    const user = await User.findById(decoded.id).select("-password");
 
-    if (!user || user.role !== "admin") {
+    if (!user) {
+      console.log("User not found for token");
+      return res.redirect("/admin/login");
+    }
+
+    if (user.role !== "admin") {
+      console.log("User is not an admin:", user.role);
       return res.redirect("/admin/login");
     }
 
@@ -24,6 +31,7 @@ const isAdmin = async (req, res, next) => {
     req.admin = user;
     next();
   } catch (error) {
+    console.error("isAdmin middleware error:", error);
     return res.redirect("/admin/login");
   }
 };

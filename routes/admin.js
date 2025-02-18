@@ -21,7 +21,15 @@ router.post("/login", csrfProtection, async (req, res) => {
     // Find user
     const user = await User.findOne({ username });
 
+    // Add debug logging
+    console.log("Login attempt:", {
+      username,
+      userFound: !!user,
+      role: user?.role,
+    });
+
     if (!user || user.role !== "admin") {
+      console.log("Login failed: Invalid user or not admin");
       return res.render("admin/login", {
         error: "Invalid credentials",
         csrfToken: req.csrfToken(),
@@ -30,7 +38,10 @@ router.post("/login", csrfProtection, async (req, res) => {
 
     // Verify password
     const isValid = await user.isCorrectPassword(password);
+    console.log("Password validation:", { isValid });
+
     if (!isValid) {
+      console.log("Login failed: Invalid password");
       return res.render("admin/login", {
         error: "Invalid credentials",
         csrfToken: req.csrfToken(),
@@ -53,6 +64,7 @@ router.post("/login", csrfProtection, async (req, res) => {
 
     res.redirect("/admin/dashboard");
   } catch (error) {
+    console.error("Login error:", error);
     res.render("admin/login", {
       error: "An error occurred",
       csrfToken: req.csrfToken(),
@@ -61,17 +73,22 @@ router.post("/login", csrfProtection, async (req, res) => {
 });
 
 // Dashboard
-router.get("/dashboard", isAdmin, async (req, res) => {
+router.get("/dashboard", isAdmin, csrfProtection, async (req, res) => {
   try {
     const users = await User.find({}).select("-password");
-    res.render("admin/dashboard", { users, admin: req.admin });
+    res.render("admin/dashboard", {
+      users,
+      currentUser: req.admin,
+      csrfToken: req.csrfToken(),
+    });
   } catch (error) {
+    console.error("Dashboard error:", error);
     res.status(500).send("Server error");
   }
 });
 
 // Edit user page
-router.get("/edit-user/:id", isAdmin, async (req, res) => {
+router.get("/users/:id/edit", isAdmin, async (req, res) => {
   try {
     const user = await User.findById(req.params.id).select("-password");
     if (!user) {
@@ -84,18 +101,62 @@ router.get("/edit-user/:id", isAdmin, async (req, res) => {
 });
 
 // Update user
-router.post("/edit-user/:id", isAdmin, async (req, res) => {
+router.post("/users/:id/edit", isAdmin, async (req, res) => {
   try {
-    const { username, role } = req.body;
-    await User.findByIdAndUpdate(req.params.id, { username, role });
+    const { username, password, role } = req.body;
+    const user = await User.findById(req.params.id);
+
+    if (!user) {
+      return res.redirect("/admin/dashboard");
+    }
+
+    // Check if username is being changed and verify it's not taken
+    if (username && username !== user.username) {
+      const existingUser = await User.findOne({ username });
+      if (existingUser && existingUser._id.toString() !== user._id.toString()) {
+        return res.redirect("/admin/dashboard");
+      }
+      user.username = username;
+    }
+
+    let shouldLogout = false;
+    // Only update password if one was provided
+    if (password && password.trim() !== "") {
+      user.password = password;
+      // Check if the user being edited is the currently logged in admin
+      if (user._id.toString() === req.admin.id) {
+        shouldLogout = true;
+      }
+    }
+
+    user.role = role;
+    await user.save();
+
+    if (shouldLogout) {
+      // Clear the admin token and redirect to login
+      res.clearCookie("adminToken");
+      return res.redirect("/admin/login");
+    }
+
     res.redirect("/admin/dashboard");
   } catch (error) {
+    console.error("Error updating user:", error);
     res.redirect("/admin/dashboard");
   }
 });
 
+// Delete handlers
+router.post("/users/:id/delete", isAdmin, async (req, res) => {
+  try {
+    await User.findByIdAndDelete(req.params.id);
+    res.redirect("/admin/dashboard");
+  } catch (error) {
+    res.status(500).send("Server Error");
+  }
+});
+
 // Logout
-router.get("/logout", (req, res) => {
+router.post("/logout", (req, res) => {
   res.clearCookie("adminToken");
   res.redirect("/admin/login");
 });
