@@ -188,32 +188,6 @@ router.get("/chat/:userId", verifyToken, async (req, res) => {
   }
 });
 
-// Send a message. If no chat exists between the current user and recipient, one is created automatically.
-/*router.post("/chat/send", verifyToken, async (req, res) => {
-  try {
-    const { recipientID, text } = req.body;
-    let chat = await ChatLog.findOne({
-      participants: { $all: [req.user.id, recipientID] },
-    });
-    if (!chat) {
-      // Create a new chat if none exists.
-      chat = new ChatLog({ participants: [req.user.id, recipientID] });
-      await chat.save();
-    }
-    // Use the custom method to add (encrypted) message.
-    await chat.addMessage(req.user.id, recipientID, text);
-    // Send a WebSocket update to the recipient (if online).
-    sendToUser(recipientID, {
-      type: "NEW_MESSAGE",
-      chatID: chat._id,
-      sender: req.user.id,
-      text,
-    });
-    res.json({ message: "Message sent", chat: chat.toJSON() });
-  } catch (err) {
-    res.status(500).json({ error: JSON.stringify(err) });
-  }
-});*/
 router.post("/chat/send", verifyToken, async (req, res) => {
   try {
     const { recipientID, text } = req.body;
@@ -232,7 +206,7 @@ router.post("/chat/send", verifyToken, async (req, res) => {
     // Send a WebSocket update to the recipient (if online).
     const wss = req.app.locals.wss;
     sendToUser(wss, recipientID, {
-      type: "NEW_MESSAGE",
+      type: "MESSAGE",
       chatID: chat._id,
       sender: req.user.id,
       text,
@@ -271,7 +245,7 @@ router.delete(
       chat.participants.forEach((participant) => {
         if (participant.toString() !== req.user.id) {
           sendToUser(wss, participant.toString(), {
-            type: "DELETE_MESSAGE",
+            type: "MESSAGE",
             chatID: chat._id,
             messageID: messageId,
           });
@@ -300,7 +274,7 @@ router.put(
       chat.participants.forEach((participant) => {
         if (participant.toString() !== req.user.id) {
           sendToUser(wss, participant.toString(), {
-            type: "EDIT_MESSAGE",
+            type: "MESSAGE",
             chatID: chat._id,
             messageID: messageId,
             newText,
