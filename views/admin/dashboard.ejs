@@ -6,80 +6,177 @@
     <title>Admin Dashboard</title>
     <style>
         body {
-            font-family: Roboto, Arial, sans-serif;
             background-color: #f3f4f6;
             margin: 0;
-            padding: 20px;
+            font-family: Roboto, Arial, sans-serif;
         }
-        .header {
+        .nav {
+            background: white;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+            padding: 1rem;
+        }
+        .nav-content {
+            max-width: 80rem;
+            margin: 0 auto;
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 20px;
         }
-        .logout-btn {
-            padding: 8px 16px;
-            background-color: #ef4444;
+        .nav-title {
+            font-size: 1.25rem;
+            font-weight: bold;
+        }
+        .logout-button {
+            background-color: #dc2626;
             color: white;
+            padding: 0.5rem 1rem;
             border: none;
-            border-radius: 4px;
+            border-radius: 0.25rem;
             cursor: pointer;
-            text-decoration: none;
+        }
+        .logout-button:hover {
+            background-color: #b91c1c;
+        }
+        .main {
+            max-width: 80rem;
+            margin: 1.5rem auto;
+            padding: 0 1rem;
+        }
+        .section {
+            margin-bottom: 2rem;
+        }
+        .section-title {
+            font-size: 1.5rem;
+            font-weight: bold;
+            margin-bottom: 1rem;
         }
         .table {
             width: 100%;
             background: white;
-            border-radius: 8px;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            border-radius: 0.5rem;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
             border-collapse: collapse;
         }
-        .table th, .table td {
-            padding: 12px;
+        .table th {
             text-align: left;
+            padding: 0.75rem 1.5rem;
+            background-color: #f9fafb;
+            font-size: 0.75rem;
+            font-weight: 500;
+            text-transform: uppercase;
+            color: #6b7280;
             border-bottom: 1px solid #e5e7eb;
         }
-        .table th {
-            background-color: #f9fafb;
-            font-weight: 600;
+        .table td {
+            padding: 1rem 1.5rem;
+            border-bottom: 1px solid #e5e7eb;
         }
-        .edit-btn {
-            padding: 6px 12px;
-            background-color: #3b82f6;
-            color: white;
+        .delete-button {
+            color: #dc2626;
+            background: none;
             border: none;
-            border-radius: 4px;
+            cursor: pointer;
+            padding: 0;
+        }
+        .delete-button:hover {
+            color: #b91c1c;
+        }
+        .edit-button {
+            color: #2563eb;
             text-decoration: none;
-            font-size: 14px;
+            cursor: pointer;
+        }
+        .edit-button:hover {
+            color: #1d4ed8;
+            text-decoration: underline;
+        }
+        .role-badge {
+            padding: 0.25rem 0.5rem;
+            border-radius: 0.25rem;
+            font-size: 0.85rem;
+            font-weight: 600;
+            text-transform: capitalize;
+        }
+        .role-admin {
+            background-color: #fef3c7;
+            color: #92400e;
+        }
+        .role-user {
+            background-color: #e0e7ff;
+            color: #3730a3;
+        }
+        .header-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .current-user {
+            font-size: 1rem;
+            font-weight: bold;
+            padding: 0.5rem 1rem;
+        }
+        
+        .current-user strong {
+            color: #05a720;
+            font-size: 1.2rem;
         }
     </style>
 </head>
 <body>
-    <div class="header">
-        <h1>Admin Dashboard</h1>
-        <a href="/admin/logout" class="logout-btn">Logout</a>
-    </div>
+    <nav class="nav">
+        <div class="nav-content">
+            <h1 class="nav-title">Admin Dashboard</h1>
+            <form action="/admin/logout" method="POST">
+                <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                <button type="submit" class="logout-button">Logout</button>
+            </form>
+        </div>
+    </nav>
 
-    <table class="table">
-        <thead>
-            <tr>
-                <th>Username</th>
-                <th>Role</th>
-                <th>Created At</th>
-                <th>Actions</th>
-            </tr>
-        </thead>
-        <tbody>
-            <% users.forEach(user => { %>
-                <tr>
-                    <td><%= user.username %></td>
-                    <td><%= user.role %></td>
-                    <td><%= new Date(user.createdAt).toLocaleDateString() %></td>
-                    <td>
-                        <a href="/admin/edit-user/<%= user._id %>" class="edit-btn">Edit</a>
-                    </td>
-                </tr>
-            <% }); %>
-        </tbody>
-    </table>
+    <main class="main">
+        <section class="section">
+            <div class="header-row">
+                <h2 class="section-title">Users [<%= users.length %>]</h2>
+                <div class="current-user">
+                    Logged in as: <strong><%= currentUser.username %></strong>
+                </div>
+            </div>
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>Username</th>
+                        <th>Role</th>
+                        <th>Created At</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <% users.forEach(user => { %>
+                    <tr>
+                        <td><%= user.username %></td>
+                        <td>
+                            <span class="role-badge <%= user.role === 'admin' ? 'role-admin' : 'role-user' %>">
+                                <%= user.role %>
+                            </span>
+                        </td>
+                        <td><%= new Date(user.createdAt).toLocaleDateString() %></td>
+                        <td>
+                            <div style="display: flex; gap: 1rem;">
+                                <a href="/admin/users/<%= user._id %>/edit" class="edit-button">Edit</a>
+                                <form action="/admin/users/<%= user._id %>/delete" method="POST" style="display: inline;">
+                                    <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                                    <button type="submit" class="delete-button">Delete</button>
+                                </form>
+                            </div>
+                        </td>
+                    </tr>
+                    <% }) %>
+                </tbody>
+            </table>
+        </section>
+
+        <!-- Jobs and Posts sections removed for now -->
+    </main>
 </body>
-</html>
+</html> 
