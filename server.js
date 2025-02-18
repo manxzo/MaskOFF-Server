@@ -62,26 +62,23 @@ mongoose.connection.on("error", (err) => {
 const wss = new WebSocket.Server({ server });
 
 // When a client connects...
+app.locals.wss = wss;
+
 wss.on("connection", (ws) => {
   console.log("New WebSocket connection");
 
   ws.on("message", (message) => {
     try {
-      const parsed = JSON.parse(message);
-
-      // Listen for an authentication message
-      if (parsed.type === "AUTH" && parsed.userId) {
-        ws.userId = parsed.userId;
+      const data = JSON.parse(message);
+      if (data.type === "AUTH" && data.userId) {
+        ws.userId = data.userId; // Save the userId on the WebSocket connection
         console.log(`WebSocket authenticated for user: ${ws.userId}`);
       }
-      // Additional WS message handling can be added here.
+      // Handle additional message types if needed.
     } catch (err) {
-      console.error("Error parsing WS message:", err);
+      console.error("Error processing WebSocket message:", err);
     }
   });
-
-  // Optionally, send a welcome message.
-  ws.send(JSON.stringify({ type: "WELCOME", message: "Welcome to the MaskOFF WS server" }));
 });
 
 // WebSocket helper to send live updates to a user.
