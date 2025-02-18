@@ -5,7 +5,6 @@ const User = require("../models/User");
 const ChatLog = require("../models/ChatLog");
 const { generateToken, verifyToken } = require("../components/jwtUtils");
 
-
 // Import sendToUser from server.js to send live WS updates.
 const { sendToUser } = require("../components/wsUtils");
 
@@ -22,7 +21,7 @@ router.post("/newuser", async (req, res) => {
     const user = new User({ username, password });
     await user.save();
     const token = generateToken(user);
-    res.status(201).json({token, user: user.toJSON()});
+    res.status(201).json({ token, user: user.toJSON() });
   } catch (err) {
     res.status(400).json({ error: err.message });
   }
@@ -221,7 +220,7 @@ router.post("/chat/send", verifyToken, async (req, res) => {
     if (!recipientID || !text) {
       throw new Error("Missing recipientID or text in request body");
     }
-    
+
     let chat = await ChatLog.findOne({
       participants: { $all: [req.user.id, recipientID] },
     });
@@ -230,19 +229,20 @@ router.post("/chat/send", verifyToken, async (req, res) => {
       await chat.save();
     }
     await chat.addMessage(req.user.id, recipientID, text);
-   /* sendToUser(recipientID, {
+    // Send a WebSocket update to the recipient (if online).
+    const wss = req.app.locals.wss;
+    sendToUser(wss, recipientID, {
       type: "NEW_MESSAGE",
       chatID: chat._id,
       sender: req.user.id,
       text,
-    });*/
+    });
     res.json({ message: "Message sent", chat: chat.toJSON() });
   } catch (err) {
     console.error("Error in /api/chat/send:", err);
     res.status(500).json({ error: err.message });
   }
 });
-
 
 // Retrieve decrypted messages for a specific chat.
 router.get("/chat/messages/:chatId", verifyToken, async (req, res) => {
@@ -267,9 +267,10 @@ router.delete(
       if (!chat) return res.status(404).json({ error: "Chat not found" });
       await chat.deleteMessage(messageId);
       // Send a WebSocket update to the other participant(s).
+      const wss = req.app.locals.wss;
       chat.participants.forEach((participant) => {
         if (participant.toString() !== req.user.id) {
-          sendToUser(participant.toString(), {
+          sendToUser(wss, participant.toString(), {
             type: "DELETE_MESSAGE",
             chatID: chat._id,
             messageID: messageId,
@@ -295,9 +296,10 @@ router.put(
       if (!chat) return res.status(404).json({ error: "Chat not found" });
       await chat.editMessage(messageId, newText);
       // Send a WebSocket update to the other participant(s).
+      const wss = req.app.locals.wss;
       chat.participants.forEach((participant) => {
         if (participant.toString() !== req.user.id) {
-          sendToUser(participant.toString(), {
+          sendToUser(wss, participant.toString(), {
             type: "EDIT_MESSAGE",
             chatID: chat._id,
             messageID: messageId,
