@@ -50,6 +50,17 @@ function sendToUser(userId, data) {
 }
 
 /**
+ * Sends a JSON message to multiple users.
+ * @param {string[]} userIds - Array of user IDs to send the message to.
+ * @param {Object} data - The data to send.
+ */
+function sendToUsers(userIds, data) {
+  userIds.forEach((userId) => {
+    sendToUser(userId, data);
+  });
+}
+
+/**
  * Broadcasts a JSON message to all connected users.
  * @param {Object} data 
  */
@@ -99,5 +110,6 @@ function setupWebSocketServer(wss) {
 module.exports = {
   setupWebSocketServer,
   sendToUser,
+  sendToUsers,
   broadcast,
 };

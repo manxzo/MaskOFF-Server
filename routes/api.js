@@ -7,8 +7,8 @@ const User = require("../models/User");
 const ChatLog = require("../models/ChatLog");
 const { generateToken, verifyToken } = require("../components/jwtUtils");
 
-// Import the targeted update function from wsUtils
-const { sendToUser } = require("../components/wsUtils");
+// Import the targeted update functions from wsUtils
+const { sendToUser, sendToUsers } = require("../components/wsUtils");
 
 /*
   ---------------------
@@ -134,8 +134,10 @@ router.post("/friends/accept", verifyToken, async (req, res) => {
     await user.save();
     await friend.save();
     // Target both users to update their friend lists.
-    sendToUser(req.user.id, { type: "UPDATE_DATA", update: "friends" });
-    sendToUser(friendID, { type: "UPDATE_DATA", update: "friends" });
+    sendToUsers([req.user.id, friendID], {
+      type: "UPDATE_DATA",
+      update: "friends",
+    });
     res.json({ message: "Friend request accepted" });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -166,8 +168,10 @@ router.post("/chat/create", verifyToken, async (req, res) => {
     await chat.save();
     res.status(201).json(chat.toJSON());
     // Target both participants to update their chat lists.
-    sendToUser(req.user.id, { type: "UPDATE_DATA", update: "chats" });
-    sendToUser(recipientID, { type: "UPDATE_DATA", update: "chats" });
+    sendToUsers([req.user.id, recipientID], {
+      type: "UPDATE_DATA",
+      update: "chats",
+    });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -213,8 +217,10 @@ router.post("/chat/send", verifyToken, async (req, res) => {
     }
     await chat.addMessage(req.user.id, recipientID, text);
     // Notify both the sender and recipient to update their chats.
-    sendToUser(req.user.id, { type: "UPDATE_DATA", update: "chats" });
-    sendToUser(recipientID, { type: "UPDATE_DATA", update: "chats" });
+    sendToUsers([req.user.id, recipientID], {
+      type: "UPDATE_DATA",
+      update: "chats",
+    });
     res.json({ message: "Message sent", chat: chat.toJSON() });
   } catch (err) {
     console.error("Error in /api/chat/send:", err);
@@ -235,43 +241,57 @@ router.get("/chat/messages/:chatId", verifyToken, async (req, res) => {
 });
 
 // Delete a specific message from a chat.
-router.delete("/chat/message/:chatId/:messageId", verifyToken, async (req, res) => {
-  try {
-    const { chatId, messageId } = req.params;
-    const chat = await ChatLog.findById(chatId);
-    if (!chat) return res.status(404).json({ error: "Chat not found" });
-    await chat.deleteMessage(messageId);
-    // Notify the other participant(s)
-    chat.participants.forEach((participant) => {
-      if (participant.toString() !== req.user.id) {
-        sendToUser(participant.toString(), { type: "UPDATE_DATA", update: "chats" });
-      }
-    });
-    res.json({ message: "Message deleted" });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
+router.delete(
+  "/chat/message/:chatId/:messageId",
+  verifyToken,
+  async (req, res) => {
+    try {
+      const { chatId, messageId } = req.params;
+      const chat = await ChatLog.findById(chatId);
+      if (!chat) return res.status(404).json({ error: "Chat not found" });
+      await chat.deleteMessage(messageId);
+      // Notify the other participant(s)
+      chat.participants.forEach((participant) => {
+        if (participant.toString() !== req.user.id) {
+          sendToUser(participant.toString(), {
+            type: "UPDATE_DATA",
+            update: "chats",
+          });
+        }
+      });
+      res.json({ message: "Message deleted" });
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
   }
-});
+);
 
 // Edit a message in a chat.
-router.put("/chat/message/:chatId/:messageId", verifyToken, async (req, res) => {
-  try {
-    const { chatId, messageId } = req.params;
-    const { newText } = req.body;
-    const chat = await ChatLog.findById(chatId);
-    if (!chat) return res.status(404).json({ error: "Chat not found" });
-    await chat.editMessage(messageId, newText);
-    // Notify the other participant(s)
-    chat.participants.forEach((participant) => {
-      if (participant.toString() !== req.user.id) {
-        sendToUser(participant.toString(), { type: "UPDATE_DATA", update: "chats" });
-      }
-    });
-    res.json({ message: "Message edited" });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
+router.put(
+  "/chat/message/:chatId/:messageId",
+  verifyToken,
+  async (req, res) => {
+    try {
+      const { chatId, messageId } = req.params;
+      const { newText } = req.body;
+      const chat = await ChatLog.findById(chatId);
+      if (!chat) return res.status(404).json({ error: "Chat not found" });
+      await chat.editMessage(messageId, newText);
+      // Notify the other participant(s)
+      chat.participants.forEach((participant) => {
+        if (participant.toString() !== req.user.id) {
+          sendToUser(participant.toString(), {
+            type: "UPDATE_DATA",
+            update: "chats",
+          });
+        }
+      });
+      res.json({ message: "Message edited" });
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
   }
-});
+);
 
 // Delete an entire chat.
 router.delete("/chat/:chatId", verifyToken, async (req, res) => {
@@ -280,7 +300,10 @@ router.delete("/chat/:chatId", verifyToken, async (req, res) => {
     if (!chat) return res.status(404).json({ error: "Chat not found" });
     // Notify all participants of the deletion.
     chat.participants.forEach((participant) => {
-      sendToUser(participant.toString(), { type: "UPDATE_DATA", update: "chats" });
+      sendToUser(participant.toString(), {
+        type: "UPDATE_DATA",
+        update: "chats",
+      });
     });
     res.json({ message: "Chat deleted" });
   } catch (err) {
