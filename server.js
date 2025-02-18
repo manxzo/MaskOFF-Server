@@ -44,10 +44,13 @@ app.use(limiter);
 
 // Routes
 
-
 // Import and use API routes
 const apiRoutes = require("./routes/api");
 app.use("/api", apiRoutes);
+
+// Import and use admin routes
+const adminRoutes = require("./routes/admin");
+app.use("/admin", adminRoutes);
 
 // MongoDB Connection
 mongoose.connect(process.env.MONGODB_URI);
@@ -82,7 +85,6 @@ wss.on("connection", (ws) => {
 });
 
 // WebSocket helper to send live updates to a user.
-
 
 // Root & API info endpoints
 app.get("/", (req, res) => {
