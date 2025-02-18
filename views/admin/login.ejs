@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Login</title>
+    <style>
+        body {
+            background-color: #f3f4f6;
+            margin: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+        }
+        .container {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .login-box {
+            background: white;
+            padding: 2rem;
+            border-radius: 0.5rem;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+            width: 100%;
+            max-width: 24rem;
+        }
+        .title {
+            text-align: center;
+            font-size: 1.875rem;
+            font-weight: 800;
+            margin-bottom: 2rem;
+        }
+        .error {
+            background-color: #fee2e2;
+            border: 1px solid #ef4444;
+            color: #b91c1c;
+            padding: 0.75rem;
+            border-radius: 0.25rem;
+            margin-bottom: 1rem;
+        }
+        .form-group {
+            margin-bottom: 1rem;
+        }
+        .form-label {
+            display: none;
+        }
+        .form-input {
+            width: 100%;
+            padding: 0.5rem;
+            border: 1px solid #d1d5db;
+            border-radius: 0.25rem;
+            margin-bottom: 1rem;
+        }
+        .submit-button {
+            width: 100%;
+            padding: 0.5rem 1rem;
+            background-color: #4f46e5;
+            color: white;
+            border: none;
+            border-radius: 0.25rem;
+            cursor: pointer;
+        }
+        .submit-button:hover {
+            background-color: #4338ca;
+        }
+        .debug-info {
+            margin-top: 1rem;
+            font-size: 0.75rem;
+            color: #6b7280;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="login-box">
+            <h2 class="title">Admin Login</h2>
+            <% if (typeof error !== 'undefined') { %>
+                <div class="error">
+                    <%= error %>
+                </div>
+            <% } %>
+            <form method="POST" action="/admin/login">
+                <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                <div class="form-group">
+                    <label for="username" class="form-label">Username</label>
+                    <input id="username" 
+                           name="username" 
+                           type="text" 
+                           required 
+                           class="form-input"
+                           placeholder="Username">
+                </div>
+                <div class="form-group">
+                    <label for="password" class="form-label">Password</label>
+                    <input id="password" 
+                           name="password" 
+                           type="password" 
+                           required 
+                           class="form-input"
+                           placeholder="Password">
+                </div>
+                <button type="submit" class="submit-button">Sign in</button>
+            </form>
+            <% if (process.env.NODE_ENV !== 'production') { %>
+                <div class="debug-info">
+                    CSRF Token: <%= csrfToken %>
+                </div>
+            <% } %>
+        </div>
+    </div>
+</body>
+</html> 
