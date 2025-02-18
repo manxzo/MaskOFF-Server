@@ -62,8 +62,7 @@ mongoose.connection.on("error", (err) => {
 
 // Create WebSocket server and attach it to the HTTP server.
 const wss = new WebSocket.Server({ server });
-app.locals.wss = wss; // if needed by API routes (though we now use wsUtils directly)
-
+app.locals.wss = wss; // (optional if you need it in routes)
 const { setupWebSocketServer } = require("./components/wsUtils");
 setupWebSocketServer(wss);
 
