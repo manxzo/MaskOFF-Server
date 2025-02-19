@@ -52,6 +52,14 @@ app.use("/api", apiRoutes);
 const adminRoutes = require("./routes/admin");
 app.use("/admin", adminRoutes);
 
+// Import and use post routes
+const postRoutes = require("./routes/posts");
+app.use("/api", postRoutes);
+
+// Import and use introduction routes
+const introductionRoutes = require("./routes/introductions");
+app.use("/api", introductionRoutes);
+
 // MongoDB Connection
 mongoose.connect(process.env.MONGODB_URI);
 mongoose.connection.on("connected", () => {
@@ -98,6 +106,13 @@ app.get("/api", (req, res) => {
       login: "POST /api/users/login",
       getUser: "GET /api/user/:userID",
       listUsers: "GET /api/users",
+      createPost: "POST /api/posts",
+      getPosts: "GET /api/posts",
+      getPost: "GET /api/posts/:postId",
+      updatePost: "PUT /api/posts/:postId",
+      deletePost: "DELETE /api/posts/:postId",
+      createIntroduction: "POST /api/introduction",
+      getIntroductions: "GET /api/introductions",
       friendRequest: "POST /api/friends/request",
       friendRequests: "GET /api/friends/requests",
       deleteFriendRequest: "DELETE /api/friends/request",
