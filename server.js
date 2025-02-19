@@ -1,3 +1,6 @@
+// [server.js]
+// Main entry point for MaskOFF-Server
+
 require("dotenv").config();
 const express = require("express");
 const mongoose = require("mongoose");
@@ -43,12 +46,8 @@ const limiter = rateLimit({
 app.use(limiter);
 
 // Routes
-
-// Import and use API routes
 const apiRoutes = require("./routes/api");
 app.use("/api", apiRoutes);
-
-// Import and use admin routes
 const adminRoutes = require("./routes/admin");
 app.use("/admin", adminRoutes);
 
@@ -69,30 +68,11 @@ mongoose.connection.on("error", (err) => {
   console.error(`MongoDB connection error: ${err}`);
 });
 
-// Create the WebSocket server (after creating the HTTP server)
+// Create WebSocket server and attach it to the HTTP server.
 const wss = new WebSocket.Server({ server });
-
-// When a client connects...
-app.locals.wss = wss;
-
-wss.on("connection", (ws) => {
-  console.log("New WebSocket connection");
-
-  ws.on("message", (message) => {
-    try {
-      const data = JSON.parse(message);
-      if (data.type === "AUTH" && data.userId) {
-        ws.userId = data.userId; // Save the userId on the WebSocket connection
-        console.log(`WebSocket authenticated for user: ${ws.userId}`);
-      }
-      // Handle additional message types if needed.
-    } catch (err) {
-      console.error("Error processing WebSocket message:", err);
-    }
-  });
-});
-
-// WebSocket helper to send live updates to a user.
+app.locals.wss = wss; // (optional if you need it in routes)
+const { setupWebSocketServer } = require("./components/wsUtils");
+setupWebSocketServer(wss);
 
 // Root & API info endpoints
 app.get("/", (req, res) => {
@@ -129,6 +109,7 @@ app.get("/api", (req, res) => {
     },
   });
 });
+
 server.listen(port, () => {
   console.log(`Server is running on port ${port}`);
 });

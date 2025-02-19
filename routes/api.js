@@ -1,12 +1,14 @@
-// routes/api.js
+// [routes/api.js]
+// API routes for MaskOFF-Server
+
 const express = require("express");
 const router = express.Router();
 const User = require("../models/User");
 const ChatLog = require("../models/ChatLog");
 const { generateToken, verifyToken } = require("../components/jwtUtils");
 
-// Import sendToUser from server.js to send live WS updates.
-const { sendToUser } = require("../components/wsUtils");
+// Import the targeted update functions from wsUtils
+const { sendToUser, sendToUsers } = require("../components/wsUtils");
 
 /*
   ---------------------
@@ -83,6 +85,8 @@ router.post("/friends/request", verifyToken, async (req, res) => {
       return res.status(400).json({ error: "Friend request already sent" });
     friend.friendRequests.push(user._id);
     await friend.save();
+    // Target the friend to refresh their friend requests.
+    sendToUser(friendID, { type: "UPDATE_DATA", update: "friends" });
     res.json({ message: "Friend request sent" });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -129,6 +133,11 @@ router.post("/friends/accept", verifyToken, async (req, res) => {
     if (!friend.friends.includes(req.user.id)) friend.friends.push(req.user.id);
     await user.save();
     await friend.save();
+    // Target both users to update their friend lists.
+    sendToUsers([req.user.id, friendID], {
+      type: "UPDATE_DATA",
+      update: "friends",
+    });
     res.json({ message: "Friend request accepted" });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -158,6 +167,11 @@ router.post("/chat/create", verifyToken, async (req, res) => {
     const chat = new ChatLog({ participants: [req.user.id, recipientID] });
     await chat.save();
     res.status(201).json(chat.toJSON());
+    // Target both participants to update their chat lists.
+    sendToUsers([req.user.id, recipientID], {
+      type: "UPDATE_DATA",
+      update: "chats",
+    });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -188,39 +202,12 @@ router.get("/chat/:userId", verifyToken, async (req, res) => {
   }
 });
 
-// Send a message. If no chat exists between the current user and recipient, one is created automatically.
-/*router.post("/chat/send", verifyToken, async (req, res) => {
-  try {
-    const { recipientID, text } = req.body;
-    let chat = await ChatLog.findOne({
-      participants: { $all: [req.user.id, recipientID] },
-    });
-    if (!chat) {
-      // Create a new chat if none exists.
-      chat = new ChatLog({ participants: [req.user.id, recipientID] });
-      await chat.save();
-    }
-    // Use the custom method to add (encrypted) message.
-    await chat.addMessage(req.user.id, recipientID, text);
-    // Send a WebSocket update to the recipient (if online).
-    sendToUser(recipientID, {
-      type: "NEW_MESSAGE",
-      chatID: chat._id,
-      sender: req.user.id,
-      text,
-    });
-    res.json({ message: "Message sent", chat: chat.toJSON() });
-  } catch (err) {
-    res.status(500).json({ error: JSON.stringify(err) });
-  }
-});*/
 router.post("/chat/send", verifyToken, async (req, res) => {
   try {
     const { recipientID, text } = req.body;
     if (!recipientID || !text) {
       throw new Error("Missing recipientID or text in request body");
     }
-
     let chat = await ChatLog.findOne({
       participants: { $all: [req.user.id, recipientID] },
     });
@@ -229,13 +216,10 @@ router.post("/chat/send", verifyToken, async (req, res) => {
       await chat.save();
     }
     await chat.addMessage(req.user.id, recipientID, text);
-    // Send a WebSocket update to the recipient (if online).
-    const wss = req.app.locals.wss;
-    sendToUser(wss, recipientID, {
-      type: "NEW_MESSAGE",
-      chatID: chat._id,
-      sender: req.user.id,
-      text,
+    // Notify both the sender and recipient to update their chats.
+    sendToUsers([req.user.id, recipientID], {
+      type: "UPDATE_DATA",
+      update: "chats",
     });
     res.json({ message: "Message sent", chat: chat.toJSON() });
   } catch (err) {
@@ -266,14 +250,12 @@ router.delete(
       const chat = await ChatLog.findById(chatId);
       if (!chat) return res.status(404).json({ error: "Chat not found" });
       await chat.deleteMessage(messageId);
-      // Send a WebSocket update to the other participant(s).
-      const wss = req.app.locals.wss;
+      // Notify the other participant(s)
       chat.participants.forEach((participant) => {
         if (participant.toString() !== req.user.id) {
-          sendToUser(wss, participant.toString(), {
-            type: "DELETE_MESSAGE",
-            chatID: chat._id,
-            messageID: messageId,
+          sendToUser(participant.toString(), {
+            type: "UPDATE_DATA",
+            update: "chats",
           });
         }
       });
@@ -295,15 +277,12 @@ router.put(
       const chat = await ChatLog.findById(chatId);
       if (!chat) return res.status(404).json({ error: "Chat not found" });
       await chat.editMessage(messageId, newText);
-      // Send a WebSocket update to the other participant(s).
-      const wss = req.app.locals.wss;
+      // Notify the other participant(s)
       chat.participants.forEach((participant) => {
         if (participant.toString() !== req.user.id) {
-          sendToUser(wss, participant.toString(), {
-            type: "EDIT_MESSAGE",
-            chatID: chat._id,
-            messageID: messageId,
-            newText,
+          sendToUser(participant.toString(), {
+            type: "UPDATE_DATA",
+            update: "chats",
           });
         }
       });
@@ -319,6 +298,13 @@ router.delete("/chat/:chatId", verifyToken, async (req, res) => {
   try {
     const chat = await ChatLog.findByIdAndDelete(req.params.chatId);
     if (!chat) return res.status(404).json({ error: "Chat not found" });
+    // Notify all participants of the deletion.
+    chat.participants.forEach((participant) => {
+      sendToUser(participant.toString(), {
+        type: "UPDATE_DATA",
+        update: "chats",
+      });
+    });
     res.json({ message: "Chat deleted" });
   } catch (err) {
     res.status(500).json({ error: err.message });
