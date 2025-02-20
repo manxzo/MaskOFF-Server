@@ -1,13 +1,6 @@
 const mongoose = require("mongoose");
 const Schema = mongoose.Schema;
 
-// Comment sub-schema
-const commentSchema = new Schema({
-  author: { type: Schema.Types.ObjectId, ref: "User", required: true },
-  content: { type: String, required: true },
-  createdAt: { type: Date, default: Date.now },
-});
-
 // Post schema
 const postSchema = new Schema(
   {
@@ -20,7 +13,12 @@ const postSchema = new Schema(
       enum: ["community", "job"],
       default: "community",
     },
-    comments: [commentSchema],
+    comments: [
+      {
+        type: Schema.Types.ObjectId,
+        ref: "Comment",
+      },
+    ],
     createdAt: { type: Date, default: Date.now },
   },
   {

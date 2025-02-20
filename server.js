@@ -55,6 +55,10 @@ app.use("/admin", adminRoutes);
 const postRoutes = require("./routes/posts");
 app.use("/api", postRoutes);
 
+// Import and use comment routes
+const commentRoutes = require("./routes/comments");
+app.use("/api", commentRoutes);
+
 // Import and use introduction routes
 const introductionRoutes = require("./routes/introductions");
 app.use("/api", introductionRoutes);
