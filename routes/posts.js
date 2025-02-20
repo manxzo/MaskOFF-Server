@@ -36,10 +36,28 @@ router.get("/posts", verifyToken, async (req, res) => {
   try {
     const posts = await Post.find()
       .sort({ createdAt: -1 })
-      .populate("author", "username")
-      .populate("comments.author", "username");
+      // FIX: Some posts have null authors - using lean() to debug
+      // Added options.lean to see raw data structure
+      .populate({
+        path: "author",
+        select: "username",
+        options: { lean: true },
+      })
+      .populate({
+        path: "comments",
+        populate: {
+          path: "author",
+          select: "username",
+          // Same issue might happen with comment authors
+          options: { lean: true },
+        },
+      });
 
-    res.json(posts);
+    // DEBUG: Filter out posts with missing authors to prevent UI crash
+    // TODO: Figure out why some posts have null authors - possible data corruption?
+    const validPosts = posts.filter((post) => post.author);
+
+    res.json(validPosts);
   } catch (err) {
     console.error("Get posts error:", err);
     res.status(500).json({ error: "Failed to fetch posts" });
