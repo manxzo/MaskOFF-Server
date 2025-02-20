@@ -3,8 +3,7 @@ const crypto = require("crypto");
 require("dotenv").config();
 
 const AES_SECRET_KEY =
-  process.env.AES_SECRET_KEY ||
-  "115NEQrOTRcxxp927aecSbZXUERoFyvYz71GrxabigODAJ+eUp1lnIw2tG2YkdLk";
+  process.env.AES_SECRET_KEY;
 
 // encrypt message
 const encryptMessage = (text) => {
