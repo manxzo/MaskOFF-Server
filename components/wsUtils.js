@@ -1,23 +1,11 @@
 const WebSocket = require("ws");
-
-// Map: userId -> Set of WebSocket connections
 const userConnections = new Map();
-
-
-//  * add connection for specified user
-//  @param {string} userId 
-//  @param {WebSocket} ws 
 function addConnection(userId, ws) {
   if (!userConnections.has(userId)) {
     userConnections.set(userId, new Set());
   }
   userConnections.get(userId).add(ws);
 }
-
-
-//  * remove connection for specified user
-//   @param {string} userId 
-//   @param {WebSocket} ws 
 function removeConnection(userId, ws) {
   if (userConnections.has(userId)) {
     userConnections.get(userId).delete(ws);
@@ -26,11 +14,6 @@ function removeConnection(userId, ws) {
     }
   }
 }
-
-
-//  * send JSON message only to specified user
-//  * @param {string} userId 
-//  * @param {Object} data 
 function sendToUser(userId, data) {
   const message = JSON.stringify(data);
   if (userConnections.has(userId)) {
@@ -41,18 +24,12 @@ function sendToUser(userId, data) {
     }
   }
 }
-
-//  * send JSON message to multiple user
-//  * @param {string[]} userIds
-//  * @param {Object} data
 function sendToUsers(userIds, data) {
   userIds.forEach((userId) => {
     sendToUser(userId, data);
   });
 }
 
-//  * broadcast a JSON message to all connected users
-//  * @param {Object} data 
 function broadcast(data) {
   const message = JSON.stringify(data);
   for (const connections of userConnections.values()) {
@@ -71,7 +48,6 @@ function setupWebSocketServer(wss) {
     ws.on("message", (message) => {
       try {
         const data = JSON.parse(message);
-        // expect authentication message to assign userId to connection
         if (data.type === "AUTH" && data.userId) {
           ws.userId = data.userId;
           addConnection(data.userId, ws);
