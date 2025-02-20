@@ -5,23 +5,21 @@ const jwt = require("jsonwebtoken");
 const isAdmin = require("../middleware/isAdmin");
 const csrf = require("csurf");
 
-// CSRF protection middleware
+//CSRF protection middleware
 const csrfProtection = csrf({ cookie: true });
 
-// Login page
+//login page
 router.get("/login", csrfProtection, (req, res) => {
   res.render("admin/login", { csrfToken: req.csrfToken() });
 });
 
-// Login handler
+//login handler
 router.post("/login", csrfProtection, async (req, res) => {
   try {
     const { username, password } = req.body;
-
-    // Find user
+    //find user
     const user = await User.findOne({ username });
-
-    // Add debug logging
+    //debug
     console.log("Login attempt:", {
       username,
       userFound: !!user,
@@ -36,7 +34,7 @@ router.post("/login", csrfProtection, async (req, res) => {
       });
     }
 
-    // Verify password
+    //verify pw
     const isValid = await user.isCorrectPassword(password);
     console.log("Password validation:", { isValid });
 
@@ -48,14 +46,14 @@ router.post("/login", csrfProtection, async (req, res) => {
       });
     }
 
-    // Generate token
+    //generate token
     const token = jwt.sign(
       { id: user._id, username: user.username },
       process.env.JWT_SECRET,
       { expiresIn: "8h" }
     );
 
-    // Set cookie
+    //set cookie
     res.cookie("adminToken", token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
@@ -72,7 +70,7 @@ router.post("/login", csrfProtection, async (req, res) => {
   }
 });
 
-// Dashboard
+//dashboard
 router.get("/dashboard", isAdmin, csrfProtection, async (req, res) => {
   try {
     const users = await User.find({}).select("-password");
@@ -87,7 +85,7 @@ router.get("/dashboard", isAdmin, csrfProtection, async (req, res) => {
   }
 });
 
-// Edit user page
+//edit user page
 router.get("/users/:id/edit", isAdmin, async (req, res) => {
   try {
     const user = await User.findById(req.params.id).select("-password");
@@ -100,7 +98,7 @@ router.get("/users/:id/edit", isAdmin, async (req, res) => {
   }
 });
 
-// Update user
+//update user
 router.post("/users/:id/edit", isAdmin, async (req, res) => {
   try {
     const { username, password, role } = req.body;
@@ -110,7 +108,7 @@ router.post("/users/:id/edit", isAdmin, async (req, res) => {
       return res.redirect("/admin/dashboard");
     }
 
-    // Check if username is being changed and verify it's not taken
+    //check if username is changed + verify it's not taken
     if (username && username !== user.username) {
       const existingUser = await User.findOne({ username });
       if (existingUser && existingUser._id.toString() !== user._id.toString()) {
@@ -120,10 +118,10 @@ router.post("/users/:id/edit", isAdmin, async (req, res) => {
     }
 
     let shouldLogout = false;
-    // Only update password if one was provided
+    // only update password if one was provided
     if (password && password.trim() !== "") {
       user.password = password;
-      // Check if the user being edited is the currently logged in admin
+      // check if user edited is currently logged in admin
       if (user._id.toString() === req.admin.id) {
         shouldLogout = true;
       }
@@ -133,7 +131,7 @@ router.post("/users/:id/edit", isAdmin, async (req, res) => {
     await user.save();
 
     if (shouldLogout) {
-      // Clear the admin token and redirect to login
+      // clear admin token + redirect login
       res.clearCookie("adminToken");
       return res.redirect("/admin/login");
     }
@@ -145,7 +143,7 @@ router.post("/users/:id/edit", isAdmin, async (req, res) => {
   }
 });
 
-// Delete handlers
+//delete handlers
 router.post("/users/:id/delete", isAdmin, async (req, res) => {
   try {
     await User.findByIdAndDelete(req.params.id);
@@ -155,7 +153,7 @@ router.post("/users/:id/delete", isAdmin, async (req, res) => {
   }
 });
 
-// Logout
+//logout
 router.post("/logout", (req, res) => {
   res.clearCookie("adminToken");
   res.redirect("/admin/login");

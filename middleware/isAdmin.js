@@ -3,18 +3,14 @@ const jwt = require("jsonwebtoken");
 
 const isAdmin = async (req, res, next) => {
   try {
-    // Get token from cookie
     const token = req.cookies.adminToken;
-
     if (!token) {
       console.log("No admin token found");
       return res.redirect("/admin/login");
     }
-
-    // Verify token
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
-    // Find user and check if admin
+    // find user & check if admin
     const user = await User.findById(decoded.id).select("-password");
 
     if (!user) {
@@ -27,7 +23,7 @@ const isAdmin = async (req, res, next) => {
       return res.redirect("/admin/login");
     }
 
-    // Attach user to request
+    // attach user to request
     req.admin = user;
     next();
   } catch (error) {

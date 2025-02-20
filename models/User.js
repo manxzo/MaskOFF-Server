@@ -38,7 +38,7 @@ const userSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-// Hash password before saving
+// hash password before saving
 userSchema.pre("save", async function (next) {
   if (this.isNew || this.isModified("password")) {
     this.password = await bcrypt.hash(this.password, SALT_ROUNDS);
@@ -50,14 +50,13 @@ userSchema.methods.isCorrectPassword = async function (password) {
   return bcrypt.compare(password, this.password);
 };
 
-// **Custom JSON transformation**
 userSchema.set("toJSON", {
   virtuals: true,
   transform: (doc, ret) => {
     ret.userID = ret._id;
     delete ret._id;
     delete ret.__v;
-    delete ret.password; // Optional: remove sensitive data
+    delete ret.password;
     return ret;
   },
 });
