@@ -1,7 +1,7 @@
 const mongoose = require("mongoose");
 const Schema = mongoose.Schema;
 
-// Post schema
+// post schema
 const postSchema = new Schema(
   {
     title: { type: String, required: true, trim: true },
@@ -26,7 +26,6 @@ const postSchema = new Schema(
   }
 );
 
-// JSON transformation; add postID, remove _id and __v
 postSchema.set("toJSON", {
   virtuals: true,
   transform: (doc, ret) => {
@@ -37,7 +36,7 @@ postSchema.set("toJSON", {
   },
 });
 
-// Add indexes for better query performance
+// add indexes for better query performance
 postSchema.index({ createdAt: -1 });
 postSchema.index({ postType: 1 });
 postSchema.index({ author: 1 });

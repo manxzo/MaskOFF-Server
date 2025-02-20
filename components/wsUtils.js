@@ -1,17 +1,12 @@
-// [components/wsUtils.js]
-// This module maintains a mapping of user IDs to their active WebSocket connections
-// and provides functions to send targeted updates (or broadcast if necessary).
-
 const WebSocket = require("ws");
 
 // Map: userId -> Set of WebSocket connections
 const userConnections = new Map();
 
-/**
- * Adds a connection for the specified user.
- * @param {string} userId 
- * @param {WebSocket} ws 
- */
+
+//  * add connection for specified user
+//  @param {string} userId 
+//  @param {WebSocket} ws 
 function addConnection(userId, ws) {
   if (!userConnections.has(userId)) {
     userConnections.set(userId, new Set());
@@ -19,11 +14,10 @@ function addConnection(userId, ws) {
   userConnections.get(userId).add(ws);
 }
 
-/**
- * Removes a connection for the specified user.
- * @param {string} userId 
- * @param {WebSocket} ws 
- */
+
+//  * remove connection for specified user
+//   @param {string} userId 
+//   @param {WebSocket} ws 
 function removeConnection(userId, ws) {
   if (userConnections.has(userId)) {
     userConnections.get(userId).delete(ws);
@@ -33,11 +27,10 @@ function removeConnection(userId, ws) {
   }
 }
 
-/**
- * Sends a JSON message only to the specified user.
- * @param {string} userId 
- * @param {Object} data 
- */
+
+//  * send JSON message only to specified user
+//  * @param {string} userId 
+//  * @param {Object} data 
 function sendToUser(userId, data) {
   const message = JSON.stringify(data);
   if (userConnections.has(userId)) {
@@ -49,21 +42,17 @@ function sendToUser(userId, data) {
   }
 }
 
-/**
- * Sends a JSON message to multiple users.
- * @param {string[]} userIds - Array of user IDs to send the message to.
- * @param {Object} data - The data to send.
- */
+//  * send JSON message to multiple user
+//  * @param {string[]} userIds
+//  * @param {Object} data
 function sendToUsers(userIds, data) {
   userIds.forEach((userId) => {
     sendToUser(userId, data);
   });
 }
 
-/**
- * Broadcasts a JSON message to all connected users.
- * @param {Object} data 
- */
+//  * broadcast a JSON message to all connected users
+//  * @param {Object} data 
 function broadcast(data) {
   const message = JSON.stringify(data);
   for (const connections of userConnections.values()) {
@@ -75,11 +64,6 @@ function broadcast(data) {
   }
 }
 
-/**
- * Sets up the WebSocket server.
- * On connection, expects an "AUTH" message with { type: "AUTH", userId: "..." }.
- * @param {WebSocket.Server} wss 
- */
 function setupWebSocketServer(wss) {
   wss.on("connection", (ws) => {
     console.log("New WebSocket connection established.");
@@ -87,7 +71,7 @@ function setupWebSocketServer(wss) {
     ws.on("message", (message) => {
       try {
         const data = JSON.parse(message);
-        // Expect an authentication message to assign a userId to this connection.
+        // expect authentication message to assign userId to connection
         if (data.type === "AUTH" && data.userId) {
           ws.userId = data.userId;
           addConnection(data.userId, ws);

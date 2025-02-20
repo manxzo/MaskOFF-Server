@@ -3,7 +3,6 @@ const router = express.Router();
 const Post = require("../models/Post");
 const { verifyToken } = require("../components/jwtUtils");
 
-// Create a new post
 router.post("/posts", verifyToken, async (req, res) => {
   try {
     const { title, content, postType } = req.body;
@@ -18,12 +17,8 @@ router.post("/posts", verifyToken, async (req, res) => {
       author: req.user.id,
       postType,
     });
-
     await post.save();
-
-    // Populate author details before sending response
     await post.populate("author", "username");
-
     res.status(201).json(post);
   } catch (err) {
     console.error("Create post error:", err);
@@ -31,13 +26,10 @@ router.post("/posts", verifyToken, async (req, res) => {
   }
 });
 
-// Get all posts
 router.get("/posts", verifyToken, async (req, res) => {
   try {
     const posts = await Post.find()
       .sort({ createdAt: -1 })
-      // FIX: Some posts have null authors - using lean() to debug
-      // Added options.lean to see raw data structure
       .populate({
         path: "author",
         select: "username",
@@ -48,15 +40,10 @@ router.get("/posts", verifyToken, async (req, res) => {
         populate: {
           path: "author",
           select: "username",
-          // Same issue might happen with comment authors
           options: { lean: true },
         },
       });
-
-    // DEBUG: Filter out posts with missing authors to prevent UI crash
-    // TODO: Figure out why some posts have null authors - possible data corruption?
     const validPosts = posts.filter((post) => post.author);
-
     res.json(validPosts);
   } catch (err) {
     console.error("Get posts error:", err);
@@ -64,7 +51,6 @@ router.get("/posts", verifyToken, async (req, res) => {
   }
 });
 
-// Get a specific post
 router.get("/posts/:postId", verifyToken, async (req, res) => {
   try {
     const post = await Post.findById(req.params.postId)
@@ -82,7 +68,6 @@ router.get("/posts/:postId", verifyToken, async (req, res) => {
   }
 });
 
-// Update a post
 router.put("/posts/:postId", verifyToken, async (req, res) => {
   try {
     const post = await Post.findById(req.params.postId);
@@ -90,21 +75,16 @@ router.put("/posts/:postId", verifyToken, async (req, res) => {
     if (!post) {
       return res.status(404).json({ error: "Post not found" });
     }
-
-    // Check if user is the author
     if (post.author.toString() !== req.user.id) {
       return res
         .status(403)
         .json({ error: "Not authorized to update this post" });
     }
-
     const { title, content } = req.body;
     post.title = title || post.title;
     post.content = content || post.content;
-
     await post.save();
     await post.populate("author", "username");
-
     res.json(post);
   } catch (err) {
     console.error("Update post error:", err);
@@ -112,22 +92,17 @@ router.put("/posts/:postId", verifyToken, async (req, res) => {
   }
 });
 
-// Delete a post
 router.delete("/posts/:postId", verifyToken, async (req, res) => {
   try {
     const post = await Post.findById(req.params.postId);
-
     if (!post) {
       return res.status(404).json({ error: "Post not found" });
     }
-
-    // Check if user is the author
     if (post.author.toString() !== req.user.id) {
       return res
         .status(403)
         .json({ error: "Not authorized to delete this post" });
     }
-
     await post.deleteOne();
     res.json({ message: "Post deleted successfully" });
   } catch (err) {

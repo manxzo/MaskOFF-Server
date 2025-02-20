@@ -6,7 +6,7 @@ const AES_SECRET_KEY =
   process.env.AES_SECRET_KEY ||
   "115NEQrOTRcxxp927aecSbZXUERoFyvYz71GrxabigODAJ+eUp1lnIw2tG2YkdLk";
 
-// Function to encrypt a message
+// encrypt message
 const encryptMessage = (text) => {
   const iv = crypto.randomBytes(16);
   const key = crypto.createHash("sha256").update(String(AES_SECRET_KEY)).digest();
@@ -20,7 +20,7 @@ const encryptMessage = (text) => {
   };
 };
 
-// Function to decrypt a message
+// decrypt message
 const decryptMessage = (encryptedText, iv) => {
   const key = crypto.createHash("sha256").update(String(AES_SECRET_KEY)).digest();
   const decipher = crypto.createDecipheriv("aes-256-cbc", key, Buffer.from(iv, "hex"));
@@ -37,7 +37,7 @@ const messageSchema = new mongoose.Schema({
     ref: "User",
     required: true,
   },
-  // Recipient is optional since a chat is between participants
+  // recipient optional since chat is between participants
   recipient: {
     type: mongoose.Schema.Types.ObjectId,
     ref: "User",
@@ -56,7 +56,7 @@ const messageSchema = new mongoose.Schema({
   },
 });
 
-// Custom JSON transformation for messages
+// custom JSON transformation for messages
 messageSchema.set("toJSON", {
   virtuals: true,
   transform: (doc, ret) => {
@@ -93,7 +93,7 @@ chatLogSchema.set("toJSON", {
   },
 });
 
-// Add a message to the chat (encrypts before storing)
+// add message to chat (encrypts before storing)
 chatLogSchema.methods.addMessage = async function (sender, recipient, text) {
   const { iv, encryptedData } = encryptMessage(text);
   this.messages.push({
@@ -105,7 +105,7 @@ chatLogSchema.methods.addMessage = async function (sender, recipient, text) {
   return await this.save();
 };
 
-// Retrieve all decrypted messages with custom messageID
+// retrieve all decrypted messages via custom msgID
 chatLogSchema.methods.getDecryptedMessages = function () {
   return this.messages.map((msg) => ({
     messageID: msg._id,
@@ -116,7 +116,7 @@ chatLogSchema.methods.getDecryptedMessages = function () {
   }));
 };
 
-// Delete a message by its messageID
+// delete message by msgID
 chatLogSchema.methods.deleteMessage = async function (messageID) {
   const messageIndex = this.messages.findIndex(
     (msg) => msg._id.toString() === messageID.toString()
@@ -128,7 +128,7 @@ chatLogSchema.methods.deleteMessage = async function (messageID) {
   return await this.save();
 };
 
-// Edit a message by its messageID (encrypts the new text)
+// edit message by msgID (encrypt the new text)
 chatLogSchema.methods.editMessage = async function (messageID, newText) {
   const messageIndex = this.messages.findIndex(
     (msg) => msg._id.toString() === messageID.toString()

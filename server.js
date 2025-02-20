@@ -1,6 +1,3 @@
-// [server.js]
-// Main entry point for MaskOFF-Server
-
 require("dotenv").config();
 const express = require("express");
 const mongoose = require("mongoose");
@@ -51,15 +48,12 @@ app.use("/api", apiRoutes);
 const adminRoutes = require("./routes/admin");
 app.use("/admin", adminRoutes);
 
-// Import and use post routes
 const postRoutes = require("./routes/posts");
 app.use("/api", postRoutes);
 
-// Import and use comment routes
 const commentRoutes = require("./routes/comments");
 app.use("/api", commentRoutes);
 
-// Import and use introduction routes
 const introductionRoutes = require("./routes/introductions");
 app.use("/api", introductionRoutes);
 
@@ -72,7 +66,7 @@ mongoose.connection.on("error", (err) => {
   console.error(`MongoDB connection error: ${err}`);
 });
 
-// Create WebSocket server and attach it to the HTTP server.
+// WebSocket server attach to HTTP server
 const wss = new WebSocket.Server({ server });
 app.locals.wss = wss; // (optional if you need it in routes)
 const { setupWebSocketServer } = require("./components/wsUtils");

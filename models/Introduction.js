@@ -34,7 +34,7 @@ introductionSchema.set("toJSON", {
   },
 });
 
-// Add index for better query performance
+// add index for better query performance
 introductionSchema.index({ createdAt: -1 });
 
 module.exports = mongoose.model("Introduction", introductionSchema);

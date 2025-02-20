@@ -1,13 +1,8 @@
-// [routes/api.js]
-// API routes for MaskOFF-Server
-
 const express = require("express");
 const router = express.Router();
 const User = require("../models/User");
 const ChatLog = require("../models/ChatLog");
 const { generateToken, verifyToken } = require("../components/jwtUtils");
-
-// Import the targeted update functions from wsUtils
 const { sendToUser, sendToUsers } = require("../components/wsUtils");
 
 /*
@@ -16,7 +11,6 @@ const { sendToUser, sendToUsers } = require("../components/wsUtils");
   ---------------------
 */
 
-// Register a new user
 router.post("/newuser", async (req, res) => {
   try {
     const { username, password } = req.body;
@@ -29,7 +23,6 @@ router.post("/newuser", async (req, res) => {
   }
 });
 
-// Login a user and return a JWT token
 router.post("/users/login", async (req, res) => {
   try {
     const { username, password } = req.body;
@@ -46,7 +39,6 @@ router.post("/users/login", async (req, res) => {
   }
 });
 
-// Get a user by ID
 router.get("/user/:userID", verifyToken, async (req, res) => {
   try {
     const user = await User.findById(req.params.userID);
@@ -57,7 +49,6 @@ router.get("/user/:userID", verifyToken, async (req, res) => {
   }
 });
 
-// List all users
 router.get("/users", async (req, res) => {
   try {
     const users = await User.find({});
@@ -73,7 +64,6 @@ router.get("/users", async (req, res) => {
   ---------------------
 */
 
-// Send a friend request
 router.post("/friends/request", verifyToken, async (req, res) => {
   try {
     const { friendID } = req.body;
@@ -85,7 +75,6 @@ router.post("/friends/request", verifyToken, async (req, res) => {
       return res.status(400).json({ error: "Friend request already sent" });
     friend.friendRequests.push(user._id);
     await friend.save();
-    // Target the friend to refresh their friend requests.
     sendToUser(friendID, { type: "UPDATE_DATA", update: "friends" });
     res.json({ message: "Friend request sent" });
   } catch (err) {
@@ -93,7 +82,6 @@ router.post("/friends/request", verifyToken, async (req, res) => {
   }
 });
 
-// List friend requests for the current user
 router.get("/friends/requests", verifyToken, async (req, res) => {
   try {
     const user = await User.findById(req.user.id).populate("friendRequests");
@@ -103,7 +91,6 @@ router.get("/friends/requests", verifyToken, async (req, res) => {
   }
 });
 
-// Delete (decline) a friend request
 router.delete("/friends/request", verifyToken, async (req, res) => {
   try {
     const { friendID } = req.body;
@@ -118,7 +105,6 @@ router.delete("/friends/request", verifyToken, async (req, res) => {
   }
 });
 
-// Accept a friend request
 router.post("/friends/accept", verifyToken, async (req, res) => {
   try {
     const { friendID } = req.body;
@@ -144,7 +130,6 @@ router.post("/friends/accept", verifyToken, async (req, res) => {
   }
 });
 
-// Get friend list for the current user
 router.get("/friends", verifyToken, async (req, res) => {
   try {
     const user = await User.findById(req.user.id).populate("friends");
@@ -160,7 +145,6 @@ router.get("/friends", verifyToken, async (req, res) => {
   ---------------------
 */
 
-// Explicitly create a new chat (optional, since sendMessage auto-creates a chat if needed)
 router.post("/chat/create", verifyToken, async (req, res) => {
   try {
     const { recipientID } = req.body;
@@ -177,7 +161,6 @@ router.post("/chat/create", verifyToken, async (req, res) => {
   }
 });
 
-// List all chats for the current user
 router.get("/chats", verifyToken, async (req, res) => {
   try {
     const chats = await ChatLog.find({ participants: req.user.id }).populate(
@@ -189,7 +172,6 @@ router.get("/chats", verifyToken, async (req, res) => {
   }
 });
 
-// Find a chat with a specific user
 router.get("/chat/:userId", verifyToken, async (req, res) => {
   try {
     const chat = await ChatLog.findOne({
@@ -216,7 +198,6 @@ router.post("/chat/send", verifyToken, async (req, res) => {
       await chat.save();
     }
     await chat.addMessage(req.user.id, recipientID, text);
-    // Notify both the sender and recipient to update their chats.
     sendToUsers([req.user.id, recipientID], {
       type: "UPDATE_DATA",
       update: "chats",
@@ -228,7 +209,6 @@ router.post("/chat/send", verifyToken, async (req, res) => {
   }
 });
 
-// Retrieve decrypted messages for a specific chat.
 router.get("/chat/messages/:chatId", verifyToken, async (req, res) => {
   try {
     const chat = await ChatLog.findById(req.params.chatId);
@@ -240,7 +220,6 @@ router.get("/chat/messages/:chatId", verifyToken, async (req, res) => {
   }
 });
 
-// Delete a specific message from a chat.
 router.delete(
   "/chat/message/:chatId/:messageId",
   verifyToken,
@@ -250,7 +229,6 @@ router.delete(
       const chat = await ChatLog.findById(chatId);
       if (!chat) return res.status(404).json({ error: "Chat not found" });
       await chat.deleteMessage(messageId);
-      // Notify the other participant(s)
       chat.participants.forEach((participant) => {
         if (participant.toString() !== req.user.id) {
           sendToUser(participant.toString(), {
@@ -266,7 +244,6 @@ router.delete(
   }
 );
 
-// Edit a message in a chat.
 router.put(
   "/chat/message/:chatId/:messageId",
   verifyToken,
@@ -277,7 +254,6 @@ router.put(
       const chat = await ChatLog.findById(chatId);
       if (!chat) return res.status(404).json({ error: "Chat not found" });
       await chat.editMessage(messageId, newText);
-      // Notify the other participant(s)
       chat.participants.forEach((participant) => {
         if (participant.toString() !== req.user.id) {
           sendToUser(participant.toString(), {
@@ -293,12 +269,10 @@ router.put(
   }
 );
 
-// Delete an entire chat.
 router.delete("/chat/:chatId", verifyToken, async (req, res) => {
   try {
     const chat = await ChatLog.findByIdAndDelete(req.params.chatId);
     if (!chat) return res.status(404).json({ error: "Chat not found" });
-    // Notify all participants of the deletion.
     chat.participants.forEach((participant) => {
       sendToUser(participant.toString(), {
         type: "UPDATE_DATA",

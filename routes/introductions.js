@@ -3,7 +3,6 @@ const router = express.Router();
 const Introduction = require("../models/Introduction");
 const { verifyToken } = require("../components/jwtUtils");
 
-// Create a new introduction
 router.post("/introduction", verifyToken, async (req, res) => {
   try {
     const { content } = req.body;
@@ -25,13 +24,11 @@ router.post("/introduction", verifyToken, async (req, res) => {
   }
 });
 
-// Get all introductions
 router.get("/introductions", verifyToken, async (req, res) => {
   try {
     const introductions = await Introduction.find()
       .sort({ createdAt: -1 })
-      .limit(50); // Limit to most recent 50 introductions
-
+      .limit(50); //recent 50 intros limit
     res.json(introductions);
   } catch (err) {
     console.error("Get introductions error:", err);
