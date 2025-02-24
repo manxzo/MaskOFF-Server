@@ -1,0 +1,525 @@
+{
+  "info": {
+    "_postman_id": "b60e2470-2f4e-4f96-9a9a-123456789abc",
+    "name": "MaskOFF API Collection",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Register User",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"firstName\": \"John\",\n  \"lastName\": \"Doe\",\n  \"email\": \"john.doe@example.com\",\n  \"username\": \"johndoe\",\n  \"password\": \"Password123\",\n  \"confirmPassword\": \"Password123\",\n  \"publicInfo\": { \"bio\": \"Hello!\" },\n  \"anonymousInfo\": { \"anonymousIdentity\": \"AnonJohn\", \"details\": \"Loves coding\" }\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/register",
+          "host": ["{{base_url}}"],
+          "path": ["register"]
+        }
+      }
+    },
+    {
+      "name": "Verify Email",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{base_url}}/verify-email?userID={{userID}}&token={{verificationToken}}",
+          "host": ["{{base_url}}"],
+          "path": ["verify-email"],
+          "query": [
+            { "key": "userID", "value": "{{userID}}" },
+            { "key": "token", "value": "{{verificationToken}}" }
+          ]
+        }
+      }
+    },
+    {
+      "name": "Forgot Password",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"john.doe@example.com\"\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/forgot-password",
+          "host": ["{{base_url}}"],
+          "path": ["forgot-password"]
+        }
+      }
+    },
+    {
+      "name": "Reset Password",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"userID\": \"{{userID}}\",\n  \"token\": \"{{resetToken}}\",\n  \"newPassword\": \"NewPassword123\",\n  \"confirmNewPassword\": \"NewPassword123\"\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/reset-password",
+          "host": ["{{base_url}}"],
+          "path": ["reset-password"]
+        }
+      }
+    },
+    {
+      "name": "Login User",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"username\": \"johndoe\",\n  \"password\": \"Password123\"\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/users/login",
+          "host": ["{{base_url}}"],
+          "path": ["users", "login"]
+        }
+      }
+    },
+    {
+      "name": "Get User Details",
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+        "url": {
+          "raw": "{{base_url}}/user/{{userID}}",
+          "host": ["{{base_url}}"],
+          "path": ["user", "{{userID}}"]
+        }
+      }
+    },
+    {
+      "name": "Update Profile",
+      "request": {
+        "method": "PUT",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{token}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"publicInfo\": { \"bio\": \"Updated bio\" },\n  \"anonymousInfo\": { \"anonymousIdentity\": \"UpdatedAnon\", \"details\": \"New details\" }\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/profile/{{userID}}",
+          "host": ["{{base_url}}"],
+          "path": ["profile", "{{userID}}"]
+        }
+      }
+    },
+    {
+      "name": "List All Users",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{base_url}}/users",
+          "host": ["{{base_url}}"],
+          "path": ["users"]
+        }
+      }
+    },
+    {
+      "name": "Create Post",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{token}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"content\": \"This is a new post\",\n  \"tags\": [\"tag1\", \"tag2\"],\n  \"isAnonymous\": false\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/posts",
+          "host": ["{{base_url}}"],
+          "path": ["posts"]
+        }
+      }
+    },
+    {
+      "name": "Get All Posts",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{base_url}}/posts",
+          "host": ["{{base_url}}"],
+          "path": ["posts"]
+        }
+      }
+    },
+    {
+      "name": "Get Single Post",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{base_url}}/posts/{{postID}}",
+          "host": ["{{base_url}}"],
+          "path": ["posts", "{{postID}}"]
+        }
+      }
+    },
+    {
+      "name": "Update Post",
+      "request": {
+        "method": "PUT",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{token}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"content\": \"Updated post content\",\n  \"tags\": [\"tag1\"],\n  \"isAnonymous\": false\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/posts/{{postID}}",
+          "host": ["{{base_url}}"],
+          "path": ["posts", "{{postID}}"]
+        }
+      }
+    },
+    {
+      "name": "Delete Post",
+      "request": {
+        "method": "DELETE",
+        "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+        "url": {
+          "raw": "{{base_url}}/posts/{{postID}}",
+          "host": ["{{base_url}}"],
+          "path": ["posts", "{{postID}}"]
+        }
+      }
+    },
+    {
+      "name": "Add Comment to Post",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{token}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"content\": \"This is a comment\"\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/posts/{{postID}}/comments",
+          "host": ["{{base_url}}"],
+          "path": ["posts", "{{postID}}", "comments"]
+        }
+      }
+    },
+    {
+      "name": "Upvote Post",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+        "url": {
+          "raw": "{{base_url}}/posts/{{postID}}/upvote",
+          "host": ["{{base_url}}"],
+          "path": ["posts", "{{postID}}", "upvote"]
+        }
+      }
+    },
+    {
+      "name": "Downvote Post",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+        "url": {
+          "raw": "{{base_url}}/posts/{{postID}}/downvote",
+          "host": ["{{base_url}}"],
+          "path": ["posts", "{{postID}}", "downvote"]
+        }
+      }
+    },
+    {
+      "name": "Send Friend Request",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{token}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"friendID\": \"{{friendID}}\"\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/friends/request",
+          "host": ["{{base_url}}"],
+          "path": ["friends", "request"]
+        }
+      }
+    },
+    {
+      "name": "List Friend Requests",
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+        "url": {
+          "raw": "{{base_url}}/friends/requests",
+          "host": ["{{base_url}}"],
+          "path": ["friends", "requests"]
+        }
+      }
+    },
+    {
+      "name": "Accept Friend Request",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{token}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"friendID\": \"{{friendID}}\"\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/friends/accept",
+          "host": ["{{base_url}}"],
+          "path": ["friends", "accept"]
+        }
+      }
+    },
+    {
+      "name": "List Friends",
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+        "url": {
+          "raw": "{{base_url}}/friends",
+          "host": ["{{base_url}}"],
+          "path": ["friends"]
+        }
+      }
+    },
+    {
+      "name": "Create Chat",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{token}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"recipientID\": \"{{recipientID}}\"\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/chat/create",
+          "host": ["{{base_url}}"],
+          "path": ["chat", "create"]
+        }
+      }
+    },
+    {
+      "name": "List Chats",
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+        "url": {
+          "raw": "{{base_url}}/chats",
+          "host": ["{{base_url}}"],
+          "path": ["chats"]
+        }
+      }
+    },
+    {
+      "name": "Send Message",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{token}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"recipientID\": \"{{recipientID}}\",\n  \"text\": \"Hello, this is a message.\"\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/chat/send",
+          "host": ["{{base_url}}"],
+          "path": ["chat", "send"]
+        }
+      }
+    },
+    {
+      "name": "Get Chat Messages",
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+        "url": {
+          "raw": "{{base_url}}/chat/messages/{{chatID}}",
+          "host": ["{{base_url}}"],
+          "path": ["chat", "messages", "{{chatID}}"]
+        }
+      }
+    },
+    {
+      "name": "Delete Message",
+      "request": {
+        "method": "DELETE",
+        "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+        "url": {
+          "raw": "{{base_url}}/chat/message/{{chatID}}/{{messageID}}",
+          "host": ["{{base_url}}"],
+          "path": ["chat", "message", "{{chatID}}", "{{messageID}}"]
+        }
+      }
+    },
+    {
+      "name": "Edit Message",
+      "request": {
+        "method": "PUT",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{token}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"newText\": \"Edited message content\"\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/chat/message/{{chatID}}/{{messageID}}",
+          "host": ["{{base_url}}"],
+          "path": ["chat", "message", "{{chatID}}", "{{messageID}}"]
+        }
+      }
+    },
+    {
+      "name": "Delete Chat",
+      "request": {
+        "method": "DELETE",
+        "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+        "url": {
+          "raw": "{{base_url}}/chat/{{chatID}}",
+          "host": ["{{base_url}}"],
+          "path": ["chat", "{{chatID}}"]
+        }
+      }
+    },
+    {
+      "name": "Create Job",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n    \"title\": \"Sample Job\",\n    \"description\": \"This is a sample job description\",\n    \"price\": 100,\n    \"contractPeriod\": \"30\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{baseUrl}}/jobs",
+          "host": ["{{baseUrl}}"],
+          "path": ["jobs"]
+        }
+      }
+    },
+    {
+      "name": "Get All Jobs",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/jobs",
+          "host": ["{{baseUrl}}"],
+          "path": ["jobs"]
+        }
+      }
+    },
+    {
+      "name": "Update Job",
+      "request": {
+        "method": "PUT",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n    \"title\": \"Updated Job Title\",\n    \"description\": \"Updated job description\",\n    \"price\": 150,\n    \"contractPeriod\": \"45\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{baseUrl}}/jobs/:jobID",
+          "host": ["{{baseUrl}}"],
+          "path": ["jobs", ":jobID"],
+          "variable": [
+            {
+              "key": "jobID",
+              "value": ""
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "Delete Job",
+      "request": {
+        "method": "DELETE",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}",
+            "type": "text"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/jobs/:jobID",
+          "host": ["{{baseUrl}}"],
+          "path": ["jobs", ":jobID"],
+          "variable": [
+            {
+              "key": "jobID",
+              "value": ""
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "variable": [
+    { "key": "base_url", "value": "http://localhost:3000/api" },
+    { "key": "userID", "value": "" },
+    { "key": "verificationToken", "value": "" },
+    { "key": "resetToken", "value": "" },
+    { "key": "token", "value": "" },
+    { "key": "postID", "value": "" },
+    { "key": "friendID", "value": "" },
+    { "key": "recipientID", "value": "" },
+    { "key": "chatID", "value": "" },
+    { "key": "messageID", "value": "" },
+    { "key": "baseUrl", "value": "http://localhost:3000/api" }
+  ]
+}
