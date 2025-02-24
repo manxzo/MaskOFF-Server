@@ -7,21 +7,21 @@ const { sendToUsers } = require("../components/wsUtils");
 
 const toObjectId = (id) => new mongoose.Types.ObjectId(id);
 
-// Create new chat 
+// Create new chat
 router.post("/chat/create", verifyToken, async (req, res) => {
   try {
     const { recipientID, chatType, transaction } = req.body;
     const participants = [toObjectId(req.user.id), toObjectId(recipientID)];
     let chat = await ChatLog.findOne({
       participants: { $all: participants },
-      chatType: chatType || "general"
+      chatType: chatType || "general",
     });
     if (chat) return res.status(200).json(chat.toJSON());
 
     chat = new ChatLog({
       participants,
       chatType: chatType || "general",
-      transaction: transaction || {}
+      transaction: transaction || {},
     });
     if (chat.chatType === "job") {
       chat.transaction.applicantAnonymous = true;
@@ -29,7 +29,10 @@ router.post("/chat/create", verifyToken, async (req, res) => {
       chat.transaction.applicantID = toObjectId(req.user.id);
     }
     await chat.save();
-    sendToUsers(participants.map(String), { type: "UPDATE_DATA", update: "chats" });
+    sendToUsers(participants.map(String), {
+      type: "UPDATE_DATA",
+      update: "chats",
+    });
     res.status(201).json(chat.toJSON());
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -44,18 +47,27 @@ router.get("/chats", verifyToken, async (req, res) => {
       filter.chatType = req.query.chatType;
     }
     const chats = await ChatLog.find(filter)
-      .populate("participants", "username avatar userID")
+      .populate("participants", "username userID")
       .exec();
-    res.json(chats.map(chat => chat.toJSON()));
+
+    const mappedChats = await Promise.all(
+      chats.map(async (chat) =>
+        chat.transaction.applicantAnonymous && chat.chatType === "job"
+          ? await chat.toAnonymous()
+          : chat.toJSON()
+      )
+    );
+
+    res.json(mappedChats);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
 
-// Send message in chat. 
+// Send message in chat.
 router.post("/chat/send", verifyToken, async (req, res) => {
   try {
-    const { chatID, recipientID, text, chatType,jobID } = req.body;
+    const { chatID, recipientID, text, chatType, jobID } = req.body;
     if (!text) throw new Error("Missing text");
 
     let chat;
@@ -71,23 +83,22 @@ router.post("/chat/send", verifyToken, async (req, res) => {
       chat = await ChatLog.findOne({
         participants: { $all: participants },
         chatType: chatType || "general",
-        transaction:{jobID:jobID},
+        transaction: { jobID: jobID },
       });
       if (!chat) {
         chat = new ChatLog({
           participants,
-          chatType: chatType || "general"
+          chatType: chatType || "general",
         });
         if (chat.chatType === "job") {
-          if(jobID){
-          chat.transaction.applicantAnonymous = true;
-          chat.transaction.status = "pending";
-          chat.transaction.applicantID = toObjectId(req.user.id);
-          chat.transaction.jobID = toObjectId(jobID);
+          if (jobID) {
+            chat.transaction.applicantAnonymous = true;
+            chat.transaction.status = "pending";
+            chat.transaction.applicantID = toObjectId(req.user.id);
+            chat.transaction.jobID = toObjectId(jobID);
+          } else {
+            throw new Error("No Job ID specified!");
           }
-        else{
-          throw new Error("No Job ID specified!")
-        }
         }
         await chat.save();
       }
@@ -95,7 +106,10 @@ router.post("/chat/send", verifyToken, async (req, res) => {
       throw new Error("Either chatID or recipientID must be provided");
     }
     await chat.addMessage(req.user.id, recipient.toString(), text);
-    sendToUsers([req.user.id, recipient.toString()], { type: "UPDATE_DATA", update: "chats" });
+    sendToUsers([req.user.id, recipient.toString()], {
+      type: "UPDATE_DATA",
+      update: "chats",
+    });
     res.json({ message: "Message sent", chat: chat.toJSON() });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -115,49 +129,66 @@ router.get("/chat/messages/:chatId", verifyToken, async (req, res) => {
 });
 
 // Delete a specific message from a chat
-router.delete("/chat/message/:chatId/:messageId", verifyToken, async (req, res) => {
-  try {
-    const { chatId, messageId } = req.params;
-    const chat = await ChatLog.findById(chatId);
-    if (!chat) return res.status(404).json({ error: "Chat not found" });
-    await chat.deleteMessage(messageId);
-    chat.participants.forEach(participant => {
-      if (participant.toString() !== req.user.id) {
-        sendToUsers([participant.toString()], { type: "UPDATE_DATA", update: "chats" });
-      }
-    });
-    res.json({ message: "Message deleted" });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
+router.delete(
+  "/chat/message/:chatId/:messageId",
+  verifyToken,
+  async (req, res) => {
+    try {
+      const { chatId, messageId } = req.params;
+      const chat = await ChatLog.findById(chatId);
+      if (!chat) return res.status(404).json({ error: "Chat not found" });
+      await chat.deleteMessage(messageId);
+      chat.participants.forEach((participant) => {
+        if (participant.toString() !== req.user.id) {
+          sendToUsers([participant.toString()], {
+            type: "UPDATE_DATA",
+            update: "chats",
+          });
+        }
+      });
+      res.json({ message: "Message deleted" });
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
   }
-});
+);
 
 // Edit a message in a chat
-router.put("/chat/message/:chatId/:messageId", verifyToken, async (req, res) => {
-  try {
-    const { chatId, messageId } = req.params;
-    const { newText } = req.body;
-    const chat = await ChatLog.findById(chatId);
-    if (!chat) return res.status(404).json({ error: "Chat not found" });
-    await chat.editMessage(messageId, newText);
-    chat.participants.forEach(participant => {
-      if (participant.toString() !== req.user.id) {
-        sendToUsers([participant.toString()], { type: "UPDATE_DATA", update: "chats" });
-      }
-    });
-    res.json({ message: "Message edited" });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
+router.put(
+  "/chat/message/:chatId/:messageId",
+  verifyToken,
+  async (req, res) => {
+    try {
+      const { chatId, messageId } = req.params;
+      const { newText } = req.body;
+      const chat = await ChatLog.findById(chatId);
+      if (!chat) return res.status(404).json({ error: "Chat not found" });
+      await chat.editMessage(messageId, newText);
+      chat.participants.forEach((participant) => {
+        if (participant.toString() !== req.user.id) {
+          sendToUsers([participant.toString()], {
+            type: "UPDATE_DATA",
+            update: "chats",
+          });
+        }
+      });
+      res.json({ message: "Message edited" });
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
   }
-});
+);
 
 // Delete an entire chat
 router.delete("/chat/:chatId", verifyToken, async (req, res) => {
   try {
     const chat = await ChatLog.findByIdAndDelete(req.params.chatId);
     if (!chat) return res.status(404).json({ error: "Chat not found" });
-    chat.participants.forEach(participant => {
-      sendToUsers([participant.toString()], { type: "UPDATE_DATA", update: "chats" });
+    chat.participants.forEach((participant) => {
+      sendToUsers([participant.toString()], {
+        type: "UPDATE_DATA",
+        update: "chats",
+      });
     });
     res.json({ message: "Chat deleted" });
   } catch (err) {
@@ -169,14 +200,17 @@ router.delete("/chat/:chatId", verifyToken, async (req, res) => {
 router.put("/chat/job/update/:chatId", verifyToken, async (req, res) => {
   try {
     const { chatId } = req.params;
-    const { revealIdentity, status, offerPrice } = req.body;
+    const { applicantAnonymous, status, offerPrice } = req.body;
     const chat = await ChatLog.findById(chatId);
     if (!chat) return res.status(404).json({ error: "Chat not found" });
     if (chat.chatType !== "job") {
       return res.status(400).json({ error: "Not a job chat" });
     }
-    if (typeof revealIdentity === "boolean") {
-      chat.transaction.revealIdentity = revealIdentity;
+    if (
+      typeof applicantAnonymous === "boolean" &&
+      chat.transaction.applicantID === req.user.id
+    ) {
+      chat.transaction.applicantAnonymous = applicantAnonymous;
     }
     if (status) {
       chat.transaction.status = status;
@@ -185,8 +219,11 @@ router.put("/chat/job/update/:chatId", verifyToken, async (req, res) => {
       chat.transaction.offerPrice = offerPrice;
     }
     await chat.save();
-    chat.participants.forEach(participant => {
-      sendToUsers([participant.toString()], { type: "UPDATE_DATA", update: "chats" });
+    chat.participants.forEach((participant) => {
+      sendToUsers([participant.toString()], {
+        type: "UPDATE_DATA",
+        update: "chats",
+      });
     });
     res.json({ message: "Job transaction updated", chat: chat.toJSON() });
   } catch (err) {

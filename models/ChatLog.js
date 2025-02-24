@@ -3,11 +3,9 @@ const crypto = require("crypto");
 require("dotenv").config();
 const UserProfile = require("../models/UserProfile");
 
-
 const AES_SECRET_KEY = process.env.AES_SECRET_KEY;
 const getAESKey = () =>
   crypto.createHash("sha256").update(String(AES_SECRET_KEY)).digest();
-
 
 const encryptMessage = (text) => {
   const iv = crypto.randomBytes(16);
@@ -20,29 +18,43 @@ const encryptMessage = (text) => {
 
 const decryptMessage = (encryptedText, iv) => {
   const key = getAESKey();
-  const decipher = crypto.createDecipheriv("aes-256-cbc", key, Buffer.from(iv, "hex"));
+  const decipher = crypto.createDecipheriv(
+    "aes-256-cbc",
+    key,
+    Buffer.from(iv, "hex")
+  );
   let decrypted = decipher.update(encryptedText, "hex", "utf8");
   decrypted += decipher.final("utf8");
   return decrypted;
 };
 
 const messageSchema = new mongoose.Schema({
-  sender: { type: mongoose.Schema.Types.ObjectId, ref: "UserAuth", required: true },
+  sender: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "UserAuth",
+    required: true,
+  },
   recipient: { type: mongoose.Schema.Types.ObjectId, ref: "UserAuth" },
   encryptedMessage: { type: String, required: true },
   iv: { type: String, required: true },
   timestamp: { type: Date, default: Date.now },
 });
 
-const transactionSchema = new mongoose.Schema({
-  applicantID: { type: mongoose.Schema.Types.ObjectId, ref: "UserAuth" },
-  applicantInfo: { identity: { type: String }, details: { type: String } },
-  jobID:{type:mongoose.Schema.Types.ObjectId,ref:"Job"},
-  offerPrice: Number,
-  status: { type: String, enum: ["pending", "accepted", "completed"], default: "pending" },
-  applicantAnonymous: { type: Boolean, default: true },
-  revealIdentity: { type: Boolean, default: false },
-}, { _id: false });
+const transactionSchema = new mongoose.Schema(
+  {
+    applicantID: { type: mongoose.Schema.Types.ObjectId, ref: "UserAuth" },
+    applicantInfo: { identity: { type: String }, details: { type: String } },
+    jobID: { type: mongoose.Schema.Types.ObjectId, ref: "Job" },
+    offerPrice: Number,
+    status: {
+      type: String,
+      enum: ["pending", "accepted", "completed"],
+      default: "pending",
+    },
+    applicantAnonymous: { type: Boolean, default: true },
+  },
+  { _id: false }
+);
 
 const chatLogSchema = new mongoose.Schema(
   {
@@ -55,14 +67,19 @@ const chatLogSchema = new mongoose.Schema(
     ],
     messages: [messageSchema],
     chatType: { type: String, enum: ["general", "job"], default: "general" },
-    transaction: {type:transactionSchema,default:{}},
+    transaction: { type: transactionSchema, default: {} },
   },
   { timestamps: true }
 );
 
 chatLogSchema.methods.addMessage = async function (sender, recipient, text) {
   const { iv, encryptedData } = encryptMessage(text);
-  this.messages.push({ sender, recipient, encryptedMessage: encryptedData, iv });
+  this.messages.push({
+    sender,
+    recipient,
+    encryptedMessage: encryptedData,
+    iv,
+  });
   await this.save();
 };
 
@@ -109,18 +126,36 @@ chatLogSchema.set("toObject", { virtuals: true });
 
 chatLogSchema.methods.toAnonymous = async function () {
   const chat = this.toObject({ virtuals: true });
-  if (chat.chatType === "job" && chat.transaction && chat.transaction.applicantAnonymous && !chat.transaction.revealIdentity) {
-    const profile = await UserProfile.findOne({ user: chat.transaction.applicantID });
-    if (profile && profile.anonymousInfo && profile.anonymousInfo.anonymousIdentity) {
+  if (
+    chat.chatType === "job" &&
+    chat.transaction &&
+    chat.transaction.applicantAnonymous
+  ) {
+    const profile = await UserProfile.findOne({
+      user: chat.transaction.applicantID,
+    });
+    if (
+      profile &&
+      profile.anonymousInfo &&
+      profile.anonymousInfo.anonymousIdentity
+    ) {
       chat.participants = chat.participants.map((participant) => {
-        if (participant._id ? participant._id.toString() === chat.transaction.applicantID.toString() : participant.toString() === chat.transaction.applicantID.toString()) {
-          return { ...participant, anonymousIdentity: profile.anonymousInfo.anonymousIdentity };
+        if (
+          participant._id
+            ? participant._id.toString() ===
+              chat.transaction.applicantID.toString()
+            : participant.toString() === chat.transaction.applicantID.toString()
+        ) {
+          return {
+            userID: participant.userID,
+            anonymousInfo: profile.anonymousInfo,
+          };
         }
         return participant;
       });
     }
   }
-  return chat;
+  return { ...chat, chatID: chat._id };
 };
 
 module.exports = mongoose.model("ChatLog", chatLogSchema);
