@@ -3,9 +3,11 @@ const crypto = require("crypto");
 require("dotenv").config();
 const UserProfile = require("../models/UserProfile");
 
+
 const AES_SECRET_KEY = process.env.AES_SECRET_KEY;
 const getAESKey = () =>
   crypto.createHash("sha256").update(String(AES_SECRET_KEY)).digest();
+
 
 const encryptMessage = (text) => {
   const iv = crypto.randomBytes(16);
