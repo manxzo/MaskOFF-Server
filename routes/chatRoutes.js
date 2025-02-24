@@ -47,15 +47,36 @@ router.get("/chats", verifyToken, async (req, res) => {
       filter.chatType = req.query.chatType;
     }
     const chats = await ChatLog.find(filter)
-      .populate("participants", "username userID")
+      .populate("participants", "username avatar userID")
       .exec();
 
+    const baseUrl = process.env.APP_URL
+      ? `${process.env.APP_URL}/api`
+      : "http://localhost:3000/api";
+
     const mappedChats = await Promise.all(
-      chats.map(async (chat) =>
-        chat.transaction.applicantAnonymous && chat.chatType === "job"
-          ? await chat.toAnonymous()
-          : chat.toJSON()
-      )
+      chats.map(async (chat) => {
+        // If job chat with anonymous applicant, use toAnonymous() method,
+        // otherwise use toJSON().
+        let chatObj =
+          chat.transaction.applicantAnonymous && chat.chatType === "job"
+            ? await chat.toAnonymous()
+            : chat.toJSON();
+
+        // Convert each participant's avatar (if available) to a URL.
+        chatObj.participants = chatObj.participants.map((participant) => {
+          if (participant.avatar && participant.avatar.data) {
+            participant.avatar = `${baseUrl}/avatar/${
+              participant.userID || participant._id
+            }`;
+          } else {
+            participant.avatar = null;
+          }
+          return participant;
+        });
+
+        return chatObj;
+      })
     );
 
     res.json(mappedChats);
