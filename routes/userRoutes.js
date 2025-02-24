@@ -8,7 +8,10 @@ const multer = require("multer");
 const upload = multer({ dest: "uploads/" });
 const { sendToAll } = require("../components/wsUtils");
 // MailerSend-based email utility functions
-const { sendVerificationEmail, sendForgotPasswordEmail } = require("../components/emailUtils");
+const {
+  sendVerificationEmail,
+  sendForgotPasswordEmail,
+} = require("../components/emailUtils");
 
 // registration: create UserAuth and its UserProfile, then send verification email
 router.post("/register", async (req, res) => {
@@ -20,19 +23,29 @@ router.post("/register", async (req, res) => {
       username,
       password,
       confirmPassword,
-      anonymousIdentity // required for maskOFF identity
+      anonymousIdentity, // required for maskOFF identity
     } = req.body;
 
     // validate all required fields
-    if (!name || !dob || !email || !username || !password || !confirmPassword || !anonymousIdentity) {
-      return res.status(400).json({ error: "All required fields must be provided." });
+    if (
+      !name ||
+      !dob ||
+      !email ||
+      !username ||
+      !password ||
+      !confirmPassword ||
+      !anonymousIdentity
+    ) {
+      return res
+        .status(400)
+        .json({ error: "All required fields must be provided." });
     }
 
     // check password match
     if (password !== confirmPassword) {
       return res.status(400).json({ error: "Passwords do not match." });
     }
-    if (password.length<8) {
+    if (password.length < 8) {
       return res.status(400).json({ error: "Password too short." });
     }
     // check age >= 16
@@ -44,7 +57,9 @@ router.post("/register", async (req, res) => {
     const cutoffDate = new Date();
     cutoffDate.setFullYear(now.getFullYear() - 16);
     if (dateOfBirth > cutoffDate) {
-      return res.status(400).json({ error: "You must be at least 16 years old to register." });
+      return res
+        .status(400)
+        .json({ error: "You must be at least 16 years old to register." });
     }
 
     // check for duplicates
@@ -56,9 +71,13 @@ router.post("/register", async (req, res) => {
     if (usernameExists) {
       return res.status(409).json({ error: "Username already taken." });
     }
-    const anonymousIdentityExists = await UserProfile.findOne({ 'anonymousInfo.anonymousIdentity': anonymousIdentity });
+    const anonymousIdentityExists = await UserProfile.findOne({
+      "anonymousInfo.anonymousIdentity": anonymousIdentity,
+    });
     if (anonymousIdentityExists) {
-      return res.status(409).json({ error: "This MaskOFF ID is already taken." });
+      return res
+        .status(409)
+        .json({ error: "This MaskOFF ID is already taken." });
     }
 
     // create user
@@ -67,7 +86,7 @@ router.post("/register", async (req, res) => {
       dob: dateOfBirth,
       email,
       username,
-      password
+      password,
     });
     newUserAuth.generateVerificationToken(); // generate a verification token
     await newUserAuth.save();
@@ -77,8 +96,8 @@ router.post("/register", async (req, res) => {
     const newUserProfile = new UserProfile({
       user: newUserAuth._id,
       anonymousInfo: {
-        anonymousIdentity
-      }
+        anonymousIdentity,
+      },
       // publicInfo, etc. remain optional
     });
     await newUserProfile.save();
@@ -95,13 +114,13 @@ router.post("/register", async (req, res) => {
     sendToAll({
       type: "UPDATE_DATA",
       update: "refresh",
-    })
+    });
     return res.status(201).json({
       message: "User registered successfully. Please verify your email.",
       user: {
         ...newUserAuth.toJSON(),
-        profile: newUserProfile.toJSON()
-      }
+        profile: newUserProfile.toJSON(),
+      },
     });
   } catch (err) {
     console.error("Registration error:", err);
@@ -133,7 +152,7 @@ router.get("/verify-email", async (req, res) => {
     sendToAll({
       type: "UPDATE_DATA",
       update: "refresh",
-    })
+    });
     res.json({ message: "Email verified successfully." });
   } catch (err) {
     console.error("Email verification error:", err);
@@ -168,7 +187,9 @@ router.post("/forgot-password", async (req, res) => {
       supportEmail: process.env.SUPPORT_EMAIL || "support@domain.com",
     });
 
-    res.json({ message: "Password reset instructions have been sent to your email." });
+    res.json({
+      message: "Password reset instructions have been sent to your email.",
+    });
   } catch (err) {
     console.error("Forgot password error:", err);
     res.status(500).json({ error: err.message });
@@ -189,7 +210,10 @@ router.post("/reset-password", async (req, res) => {
     const user = await UserAuth.findById(userID);
     if (!user) return res.status(404).json({ error: "User not found." });
     // check if token is valid && not expired
-    if (user.resetPasswordToken !== token || Date.now() > user.resetPasswordExpires) {
+    if (
+      user.resetPasswordToken !== token ||
+      Date.now() > user.resetPasswordExpires
+    ) {
       return res.status(400).json({ error: "Invalid or expired reset token." });
     }
     // update password (it will be hashed in the pre-save hook)
@@ -212,12 +236,16 @@ router.post("/users/login", async (req, res) => {
     const { username, password } = req.body;
     const user = await UserAuth.findOne({ username });
     if (!user) return res.status(404).json({ error: "User not found." });
-    if (!(await user.isCorrectPassword(password))) return res.status(401).json({ error: "Invalid credentials." });
+    if (!(await user.isCorrectPassword(password)))
+      return res.status(401).json({ error: "Invalid credentials." });
 
     const token = generateToken(user);
     // fetch user profile
     const profile = await UserProfile.findOne({ user: user._id });
-    res.json({ token, user: { ...user.toJSON(), profile: profile ? profile.toJSON() : {} } });
+    res.json({
+      token,
+      user: { ...user.toJSON(), profile: profile ? profile.toJSON() : {} },
+    });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -231,7 +259,9 @@ router.get("/user/:userID", verifyToken, async (req, res) => {
     const profile = await UserProfile.findOne({ user: user._id });
     let userJson = user.toJSON();
     // remove extra '/api' if APP_URL already includes it
-    userJson.avatar = `${`${process.env.APP_URL}/api` || "http://localhost:3000/api"}/avatar/${userJson.userID}`;
+    userJson.avatar = `${
+      `${process.env.APP_URL}/api` || "http://localhost:3000/api"
+    }/avatar/${userJson.userID}`;
     res.json({ ...userJson, profile: profile ? profile.toJSON() : {} });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -241,54 +271,57 @@ router.get("/user/:userID", verifyToken, async (req, res) => {
 // update profile (optional update of public/anonymous info)
 router.put("/profile/:userID", verifyToken, async (req, res) => {
   try {
-    const { publicInfo, anonymousInfo } = req.body;
+    // extract publicInfo, anonymousInfo, and privacy from the request body
+    const { publicInfo, anonymousInfo, privacy } = req.body;
     const profile = await UserProfile.findOneAndUpdate(
       { user: req.params.userID },
-      { publicInfo, anonymousInfo },
+      { publicInfo, anonymousInfo, privacy },
       { new: true }
     );
-    if (!profile) return res.status(404).json({ error: "Profile not found." });
-    sendToAll({
-      type: "UPDATE_DATA",
-      update: "refresh",
-    })
-    res.json({ message: "Profile updated", profile: profile.toJSON() });
+    if (!profile) return res.status(404).json({ error: "profile not found." });
+    sendToAll({ type: "UPDATE_DATA", update: "refresh" });
+    res.json({ message: "profile updated", profile: profile.toJSON() });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
 
 // update avatar route
-router.post("/upload-avatar", verifyToken, upload.single("avatar"), async (req, res) => {
-  try {
-    if (!req.file) {
-      return res.status(400).json({ error: "No file uploaded." });
+router.post(
+  "/upload-avatar",
+  verifyToken,
+  upload.single("avatar"),
+  async (req, res) => {
+    try {
+      if (!req.file) {
+        return res.status(400).json({ error: "No file uploaded." });
+      }
+
+      // read file data from temp storage
+      const imgData = fs.readFileSync(req.file.path);
+      const contentType = req.file.mimetype;
+
+      // use the authenticated user's ID from req.user (set by verifyToken)
+      const user = await UserAuth.findById(req.user.id);
+      if (!user) return res.status(404).json({ error: "User not found." });
+
+      // update the avatar field with the new image Buffer and content type
+      user.avatar = { data: imgData, contentType };
+      await user.save();
+
+      // remove the temporary file
+      fs.unlinkSync(req.file.path);
+      sendToAll({
+        type: "UPDATE_DATA",
+        update: "refresh",
+      });
+      res.json({ message: "Avatar uploaded successfully." });
+    } catch (err) {
+      console.error("Upload error:", err);
+      res.status(500).json({ error: err.message });
     }
-
-    // read file data from temp storage
-    const imgData = fs.readFileSync(req.file.path);
-    const contentType = req.file.mimetype;
-
-    // use the authenticated user's ID from req.user (set by verifyToken)
-    const user = await UserAuth.findById(req.user.id);
-    if (!user) return res.status(404).json({ error: "User not found." });
-
-    // update the avatar field with the new image Buffer and content type
-    user.avatar = { data: imgData, contentType };
-    await user.save();
-
-    // remove the temporary file
-    fs.unlinkSync(req.file.path);
-    sendToAll({
-      type: "UPDATE_DATA",
-      update: "refresh",
-    })
-    res.json({ message: "Avatar uploaded successfully." });
-  } catch (err) {
-    console.error("Upload error:", err);
-    res.status(500).json({ error: err.message });
   }
-});
+);
 
 router.get("/avatar/:userID", async (req, res) => {
   try {
@@ -305,17 +338,31 @@ router.get("/avatar/:userID", async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 });
-
+//delete avatar
+router.delete("/avatar/:userID", verifyToken, async (req, res) => {
+  try {
+    const user = await UserAuth.findById(req.user.id);
+    if (!user) return res.status(404).json({ error: "User not found" });
+    user.avatar = undefined; // or set to a default value if needed
+    await user.save();
+    res.json({ message: "Avatar deleted" });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
 // get list of all users (basic public information)
 router.get("/users", async (req, res) => {
   try {
     // retrieve all users from the authentication collection
     const users = await UserAuth.find({});
     // for each user, build a public object with an avatar URL if avail
-    const userList = users.map(user => {
-      const avatarUrl = (user.avatar && user.avatar.data)
-        ? `${`${process.env.APP_URL}/api` || "http://localhost:3000/api"}/avatar/${user._id}`
-        : null;
+    const userList = users.map((user) => {
+      const avatarUrl =
+        user.avatar && user.avatar.data
+          ? `${
+              `${process.env.APP_URL}/api` || "http://localhost:3000/api"
+            }/avatar/${user._id}`
+          : null;
       return {
         userID: user._id,
         username: user.username,
@@ -335,17 +382,19 @@ router.get("/user/by-username/:username", async (req, res) => {
     const user = await UserAuth.findOne({ username: req.params.username });
     if (!user) return res.status(404).json({ error: "user not found" });
     const profile = await UserProfile.findOne({ user: user._id });
-    const avatarUrl = (user.avatar && user.avatar.data)
-    ? `${`${process.env.APP_URL}/api` || "http://localhost:3000/api"}/avatar/${user._id}`
-    : null;
+    const avatarUrl =
+      user.avatar && user.avatar.data
+        ? `${
+            `${process.env.APP_URL}/api` || "http://localhost:3000/api"
+          }/avatar/${user._id}`
+        : null;
     res.json({
-      user:user? {...user.toPublicProfile(),avatar:avatarUrl} : {},
-      profile: profile ? profile.toPublicProfile() : {}
+      user: user ? { ...user.toPublicProfile(), avatar: avatarUrl } : {},
+      profile: profile ? profile.toPublicProfile() : {},
     });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
-
 
 module.exports = router;
