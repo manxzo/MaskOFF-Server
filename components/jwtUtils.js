@@ -13,7 +13,7 @@ const generateToken = (user) => {
 
 const verifyToken = (req, res, next) => {
   const authHeader = req.headers['authorization'];
-  const token = authHeader && authHeader.split(' ')[1];
+  const token = authHeader && authHeader.split(' ')[1]; // Expecting "Bearer <token>"
   if (!token) return res.status(401).json({ error: 'Access denied. No token provided.' });
   try {
     const decoded = jwt.verify(token, SECRET_KEY);
