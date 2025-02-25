@@ -160,12 +160,10 @@ router.delete(
       if (!chat) return res.status(404).json({ error: "Chat not found" });
       await chat.deleteMessage(messageId);
       chat.participants.forEach((participant) => {
-        if (participant.toString() !== req.user.id) {
-          sendToUsers([participant.toString()], {
-            type: "UPDATE_DATA",
-            update: "chats",
-          });
-        }
+        sendToUsers([participant.toString()], {
+          type: "UPDATE_DATA",
+          update: "chats",
+        });
       });
       res.json({ message: "Message deleted" });
     } catch (err) {
