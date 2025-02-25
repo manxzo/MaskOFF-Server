@@ -51,7 +51,7 @@ const transactionSchema = new mongoose.Schema(
       enum: ["pending", "accepted", "completed"],
       default: "pending",
     },
-    applicantAnonymous: { type: Boolean, default: true },
+    applicantAnonymous: { type: Boolean, default: true,required:true },
   },
   { _id: false }
 );
